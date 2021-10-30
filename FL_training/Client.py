@@ -18,18 +18,15 @@ logger = logging.getLogger(__name__)
 np.random.seed(0)
 torch.manual_seed(0)
 
-import paho.mqtt.client as mqtt
-
 class Client(Communicator):
 	def __init__(self, index, ip_address, server_addr, server_port, datalen, model_name, split_layer):
-		super(Client, self).__init__(index, ip_address)
+		super(Client, self).__init__(index, ip_address, server_addr, server_port, client_num=config.K)
 		self.datalen = datalen
 		self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
 		self.model_name = model_name
 		self.uninet = utils.get_model('Unit', self.model_name, config.model_len-1, self.device, config.model_cfg)
 
 		logger.info('Connecting to Server.')
-		client = self.connect_mqtt()
 		
 
 	def initialize(self, split_layer, offload, first, LR):
@@ -111,14 +108,3 @@ class Client(Communicator):
 
 	def reinitialize(self, split_layers, offload, first, LR):
 		self.initialize(split_layers, offload, first, LR)
-	
-	def connect_mqtt(self):
-		def on_connect(client, userdata, flags, rc):
-			if rc == 0:
-				print("Connect to MQTT Broker!")
-			else:
-				print("Failed To connect, return code %d\n", rc)
-		client = mqtt.Client(str(self.index))
-		client.on_connect = on_connect
-		client.connect(server_addr, server_port)
-		return client
