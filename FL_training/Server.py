@@ -23,9 +23,9 @@ import config
 np.random.seed(0)
 torch.manual_seed(0)
 
-class Sever(Communicator):
+class Server(Communicator):
 	def __init__(self, index, ip_address, server_port, model_name):
-		super(Sever, self).__init__(index, ip_address)
+		super(Server, self).__init__(index, ip_address)
 		self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
 		self.port = server_port
 		self.model_name = model_name

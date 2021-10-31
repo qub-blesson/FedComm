@@ -29,13 +29,23 @@ class Communicator(object):
         self.client.loop_start()
 
     # TODO: modify send/recv msg functions to support mqtt
+    # TODO: Make Server ID 0
+    # TODO: Make server MQTT applicable
+    # TODO: How would recv work?
 
     # standard socket communication
-    def send_msg(self, sock, msg):
-        msg_pickle = pickle.dumps(msg)
-        sock.sendall(struct.pack(">I", len(msg_pickle)))
-        sock.sendall(msg_pickle)
-        logger.debug(msg[0] + 'sent to' + str(sock.getpeername()[0]) + ':' + str(sock.getpeername()[1]))
+    def send_msg(self, msg):
+        if self.client_id == 0:
+            # server
+            receiver_id = msg.get_receiver_id()
+            topic = self.topic + str(0) + "_" + str(receiver_id)
+            logging.info("topic = %s" % str(topic))
+            payload = msg.to_json()
+            self.client.publish(topic, payload=payload)
+            logging.info("sent")
+        else:
+            # client
+            self.client.publish(self.topic + str(self.client_id), payload=msg.to_json())
 
     def recv_msg(self, sock, expect_msg_type=None):
         msg_len = struct.unpack(">I", sock.recv(4))[0]
@@ -53,6 +63,7 @@ class Communicator(object):
     # MQTT functionality below
     def on_connect(self, client, userdata, flags, rc):
         logging.info("Connected flags" + str(flags) + "result code " + str(rc))
+        self.client.subscribe(self.topic)
 
     def on_disconnect(self, client, userdata, rc):
         logging.info("Disconnect result code: " + str(rc))
@@ -61,6 +72,7 @@ class Communicator(object):
         self.client.loop_stop()
         self.client.disconnect()
 
+    # equivalent to recv_msg
     def on_message(self, client, userdata, message):
         msg = str(message.payload.decode("utf-8"))
         self.client.publish("Message Received")

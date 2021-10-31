@@ -20,7 +20,7 @@ torch.manual_seed(0)
 
 class Client(Communicator):
 	def __init__(self, index, ip_address, server_addr, server_port, datalen, model_name, split_layer):
-		super(Client, self).__init__(index, ip_address, server_addr, server_port, client_num=config.K)
+		super(Client, self).__init__(index, ip_address, server_addr, server_port, topic="fedserver", client_num=config.K)
 		self.datalen = datalen
 		self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
 		self.model_name = model_name
@@ -53,14 +53,14 @@ class Client(Communicator):
 		# Network speed test
 		network_time_start = time.time()
 		msg = ['MSG_TEST_NETWORK', self.uninet.cpu().state_dict()]
-		self.send_msg(self.sock, msg)
+		self.send_msg(msg)
 		msg = self.recv_msg(self.sock,'MSG_TEST_NETWORK')[1]
 		network_time_end = time.time()
 		network_speed = (2 * config.model_size * 8) / (network_time_end - network_time_start) #Mbit/s 
 
 		logger.info('Network speed is {:}'.format(network_speed))
 		msg = ['MSG_TEST_NETWORK', self.ip, network_speed]
-		self.send_msg(self.sock, msg)
+		self.send_msg(msg)
 
 		# Training start
 		s_time_total = time.time()
@@ -83,7 +83,7 @@ class Client(Communicator):
 				outputs = self.net(inputs)
 
 				msg = ['MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER', outputs.cpu(), targets.cpu()]
-				self.send_msg(self.sock, msg)
+				self.send_msg(msg)
 
 				# Wait receiving server gradients
 				gradients = self.recv_msg(self.sock)[1].to(self.device)
@@ -98,13 +98,13 @@ class Client(Communicator):
 		logger.info('training_time_per_iteration: ' + str(training_time_pr))
 
 		msg = ['MSG_TRAINING_TIME_PER_ITERATION', self.ip, training_time_pr]
-		self.send_msg(self.sock, msg)
+		self.send_msg(msg)
 
 		return e_time_total - s_time_total
 		
 	def upload(self):
 		msg = ['MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER', self.net.cpu().state_dict()]
-		self.send_msg(self.sock, msg)
+		self.send_msg(msg)
 
 	def reinitialize(self, split_layers, offload, first, LR):
 		self.initialize(split_layers, offload, first, LR)

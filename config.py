@@ -9,8 +9,9 @@ G = 2 # Number of groups
 
 # Unique clients order
 HOST2IP = {'xubuntuclient1-VirtualBox':'192.168.0.10' , 'xubuntuclient2-VirtualBox':'192.168.0.11'}
-CLIENTS_CONFIG= {'192.168.0.10':0, '192.168.0.11':1}
-CLIENTS_LIST= ['192.168.0.10', '192.168.0.11'] 
+# changed to 1 and 2, so server ID can be 0
+CLIENTS_CONFIG= {'192.168.0.10':1, '192.168.0.11':2}
+CLIENTS_LIST= ['192.168.0.10', '192.168.0.11']
 
 # Dataset configration
 dataset_name = 'CIFAR10'
@@ -22,10 +23,10 @@ N = 50000 # data length
 # Model configration
 model_cfg = {
 	# (Type, in_channels, out_channels, kernel_size, out_size(c_out*h*w), flops(c_out*h*w*k*k*c_in))
-	'VGG5' : [('C', 3, 32, 3, 32*32*32, 32*32*32*3*3*3), ('M', 32, 32, 2, 32*16*16, 0), 
-	('C', 32, 64, 3, 64*16*16, 64*16*16*3*3*32), ('M', 64, 64, 2, 64*8*8, 0), 
-	('C', 64, 64, 3, 64*8*8, 64*8*8*3*3*64), 
-	('D', 8*8*64, 128, 1, 64, 128*8*8*64), 
+	'VGG5' : [('C', 3, 32, 3, 32*32*32, 32*32*32*3*3*3), ('M', 32, 32, 2, 32*16*16, 0),
+	('C', 32, 64, 3, 64*16*16, 64*16*16*3*3*32), ('M', 64, 64, 2, 64*8*8, 0),
+	('C', 64, 64, 3, 64*8*8, 64*8*8*3*3*64),
+	('D', 8*8*64, 128, 1, 64, 128*8*8*64),
 	('D', 128, 10, 1, 10, 128*10)]
 }
 model_name = 'VGG5'
