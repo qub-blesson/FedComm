@@ -115,6 +115,7 @@ for r in range(config.R):
 	logger.info('==> Reinitialization for Round : {:}'.format(r + 1))
 	s_time_rebuild = time.time()
 	if offload:
+		# TODO: Come back to if I am doing offloaded version
 		config.split_layer = client.recv_msg(client.sock)[1]
 
 	if r > 49:

@@ -20,14 +20,16 @@ torch.manual_seed(0)
 
 class Client(Communicator):
 	def __init__(self, index, ip_address, server_addr, server_port, datalen, model_name, split_layer):
-		super(Client, self).__init__(index, ip_address, server_addr, server_port, topic="fedserver", client_num=config.K)
+		super(Client, self).__init__(index, ip_address, server_addr, server_port, sub_topic='fedserver',
+									 pub_topic='fedadapt', client_num=config.K)
 		self.datalen = datalen
 		self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
 		self.model_name = model_name
 		self.uninet = utils.get_model('Unit', self.model_name, config.model_len-1, self.device, config.model_cfg)
 
 		logger.info('Connecting to Server.')
-		
+		self.connections += 1
+
 
 	def initialize(self, split_layer, offload, first, LR):
 		if offload or first:
@@ -41,7 +43,10 @@ class Client(Communicator):
 		self.optimizer = optim.SGD(self.net.parameters(), lr=LR,
 					  momentum=0.9)
 		logger.debug('Receiving Global Weights..')
-		weights = self.recv_msg(self.sock)[1]
+		weights = None
+		while not self.q.empty():
+			# weights = self.recv_msg(self.sock)[1]
+			weights = self.q.get()[1]
 		if self.split_layer == (config.model_len -1):
 			self.net.load_state_dict(weights)
 		else:
@@ -54,9 +59,12 @@ class Client(Communicator):
 		network_time_start = time.time()
 		msg = ['MSG_TEST_NETWORK', self.uninet.cpu().state_dict()]
 		self.send_msg(msg)
-		msg = self.recv_msg(self.sock,'MSG_TEST_NETWORK')[1]
+		# msg = self.recv_msg(self.sock, 'MSG_TEST_NETWORK')[1]
+		while not self.q.empty():
+			msg = self.q.get()[1]
+
 		network_time_end = time.time()
-		network_speed = (2 * config.model_size * 8) / (network_time_end - network_time_start) #Mbit/s 
+		network_speed = (2 * config.model_size * 8) / (network_time_end - network_time_start) #Mbit/s
 
 		logger.info('Network speed is {:}'.format(network_speed))
 		msg = ['MSG_TEST_NETWORK', self.ip, network_speed]
@@ -75,7 +83,7 @@ class Client(Communicator):
 				loss = self.criterion(outputs, targets)
 				loss.backward()
 				self.optimizer.step()
-			
+
 		else: # Offloading training
 			for batch_idx, (inputs, targets) in enumerate(tqdm.tqdm(trainloader)):
 				inputs, targets = inputs.to(self.device), targets.to(self.device)
@@ -86,7 +94,10 @@ class Client(Communicator):
 				self.send_msg(msg)
 
 				# Wait receiving server gradients
-				gradients = self.recv_msg(self.sock)[1].to(self.device)
+				gradients = None
+				while not self.q.empty():
+					# gradients = self.recv_msg(self.sock)[1].to(self.device)
+					gradients = self.q.get()[1]
 
 				outputs.backward(gradients)
 				self.optimizer.step()
@@ -101,7 +112,7 @@ class Client(Communicator):
 		self.send_msg(msg)
 
 		return e_time_total - s_time_total
-		
+
 	def upload(self):
 		msg = ['MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER', self.net.cpu().state_dict()]
 		self.send_msg(msg)

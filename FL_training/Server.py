@@ -25,20 +25,14 @@ torch.manual_seed(0)
 
 class Server(Communicator):
 	def __init__(self, index, ip_address, server_port, model_name):
-		super(Server, self).__init__(index, ip_address)
+		super(Server, self).__init__(index, ip_address, ip_address, server_port, pub_topic="fedserver",
+												sub_topic='fedadapt', client_num=config.K)
 		self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
 		self.port = server_port
 		self.model_name = model_name
-		self.sock.bind((self.ip, self.port))
-		self.client_socks = {}
 
-		while len(self.client_socks) < config.K:
-			self.sock.listen(5)
+		while self.connections < config.K:
 			logger.info("Waiting Incoming Connections.")
-			(client_sock, (ip, port)) = self.sock.accept()
-			logger.info('Got connection from ' + str(ip))
-			logger.info(client_sock)
-			self.client_socks[str(ip)] = client_sock
 
 		self.uninet = utils.get_model('Unit', self.model_name, config.model_len-1, self.device, config.model_cfg)
 
@@ -69,8 +63,9 @@ class Server(Communicator):
 			self.criterion = nn.CrossEntropyLoss()
 
 		msg = ['MSG_INITIAL_GLOBAL_WEIGHTS_SERVER_TO_CLIENT', self.uninet.state_dict()]
-		for i in self.client_socks:
-			self.send_msg(self.client_socks[i], msg)
+		#for i in self.client_socks:
+			#self.send_msg(self.client_socks[i], msg)
+		self.send_msg(msg)
 
 	def train(self, thread_number, client_ips):
 		# Network test
@@ -83,9 +78,12 @@ class Server(Communicator):
 			self.net_threads[client_ips[i]].join()
 
 		self.bandwidth = {}
-		for s in self.client_socks:
-			msg = self.recv_msg(self.client_socks[s], 'MSG_TEST_NETWORK')
-			self.bandwidth[msg[1]] = msg[2]
+		# for s in self.client_socks:
+			# msg = self.recv_msg(self.client_socks[s], 'MSG_TEST_NETWORK')
+		msg = None
+		while not self.q.empty():
+			msg = self.q.get()
+		self.bandwidth[msg[1]] = msg[2]
 
 		# Training start
 		self.threads = {}
@@ -104,9 +102,12 @@ class Server(Communicator):
 			self.threads[client_ips[i]].join()
 
 		self.ttpi = {} # Training time per iteration
-		for s in self.client_socks:
-			msg = self.recv_msg(self.client_socks[s], 'MSG_TRAINING_TIME_PER_ITERATION')
-			self.ttpi[msg[1]] = msg[2]
+		# for s in self.client_socks:
+			# msg = self.recv_msg(self.client_socks[s], 'MSG_TRAINING_TIME_PER_ITERATION')
+		msg = None
+		while not self.q.empty():
+			msg = self.q.get()
+		self.ttpi[msg[1]] = msg[2]
 
 		self.group_labels = self.clustering(self.ttpi, self.bandwidth)
 		self.offloading = self.get_offloading(self.split_layers)
@@ -115,9 +116,12 @@ class Server(Communicator):
 		return state, self.bandwidth
 
 	def _thread_network_testing(self, client_ip):
-		msg = self.recv_msg(self.client_socks[client_ip], 'MSG_TEST_NETWORK')
+		# msg = self.recv_msg(self.client_socks[client_ip], 'MSG_TEST_NETWORK')
+		while not self.q.empty():
+			msg = self.q.get()
 		msg = ['MSG_TEST_NETWORK', self.uninet.cpu().state_dict()]
-		self.send_msg(self.client_socks[client_ip], msg)
+		# self.send_msg(self.client_socks[client_ip], msg)
+		self.send_msg(msg)
 
 	def _thread_training_no_offloading(self, client_ip):
 		pass
@@ -125,7 +129,10 @@ class Server(Communicator):
 	def _thread_training_offloading(self, client_ip):
 		iteration = int((config.N / (config.K * config.B)))
 		for i in range(iteration):
-			msg = self.recv_msg(self.client_socks[client_ip], 'MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER')
+			# msg = self.recv_msg(self.client_socks[client_ip], 'MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER')
+			msg = None
+			while not self.q.empty():
+				msg = self.q.get()
 			smashed_layers = msg[1]
 			labels = msg[2]
 
@@ -138,7 +145,8 @@ class Server(Communicator):
 
 			# Send gradients to client
 			msg = ['MSG_SERVER_GRADIENTS_SERVER_TO_CLIENT_'+str(client_ip), inputs.grad]
-			self.send_msg(self.client_socks[client_ip], msg)
+			# self.send_msg(self.client_socks[client_ip], msg)
+			self.send_msg(msg)
 
 		logger.info(str(client_ip) + ' offloading training end')
 		return 'Finish'
@@ -146,7 +154,10 @@ class Server(Communicator):
 	def aggregate(self, client_ips):
 		w_local_list =[]
 		for i in range(len(client_ips)):
-			msg = self.recv_msg(self.client_socks[client_ips[i]], 'MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER')
+			msg = None
+			# msg = self.recv_msg(self.client_socks[client_ips[i]], 'MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER')
+			while not self.q.empty():
+				msg = self.q.get()
 			if config.split_layer[i] != (config.model_len -1):
 				w_local = (utils.concat_weights(self.uninet.state_dict(),msg[1],self.nets[client_ips[i]].state_dict()),config.N / config.K)
 				w_local_list.append(w_local)
@@ -275,5 +286,6 @@ class Server(Communicator):
 		self.initialize(split_layers, offload, first, LR)
 
 	def scatter(self, msg):
-		for i in self.client_socks:
-			self.send_msg(self.client_socks[i], msg)
+		# for i in self.client_socks:
+			# self.send_msg(self.client_socks[i], msg)
+		self.send_msg(msg)

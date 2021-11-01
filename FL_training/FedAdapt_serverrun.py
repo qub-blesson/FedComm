@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 import sys
 sys.path.append('../')
-from Sever import Sever
+from Server import Server
 import config
 import utils
 import PPO
@@ -23,7 +23,7 @@ offload = args.offload
 first = True # First initializaiton control
 
 logger.info('Preparing Sever.')
-sever = Sever(0, config.SERVER_ADDR, config.SERVER_PORT, 'VGG5')
+sever = Server(0, config.SERVER_ADDR, config.SERVER_PORT, 'VGG5')
 sever.initialize(config.split_layer, offload, first, LR)
 first = False
 
