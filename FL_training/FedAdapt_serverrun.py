@@ -23,7 +23,7 @@ offload = args.offload
 first = True # First initializaiton control
 
 logger.info('Preparing Sever.')
-sever = Server(0, config.SERVER_ADDR, config.SERVER_PORT, 'VGG5')
+sever = Server(config.K, config.SERVER_ADDR, config.SERVER_PORT, 'VGG5')
 sever.initialize(config.split_layer, offload, first, LR)
 first = False
 

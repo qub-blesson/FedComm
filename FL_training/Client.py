@@ -6,6 +6,8 @@ import time
 import numpy as np
 import sys
 
+import Communicator
+
 sys.path.append('../')
 import config
 import utils
@@ -28,7 +30,6 @@ class Client(Communicator):
 		self.uninet = utils.get_model('Unit', self.model_name, config.model_len-1, self.device, config.model_cfg)
 
 		logger.info('Connecting to Server.')
-		self.connections += 1
 
 
 	def initialize(self, split_layer, offload, first, LR):
@@ -44,9 +45,9 @@ class Client(Communicator):
 					  momentum=0.9)
 		logger.debug('Receiving Global Weights..')
 		weights = None
-		while not self.q.empty():
-			# weights = self.recv_msg(self.sock)[1]
-			weights = self.q.get()[1]
+		while weights is None:
+			# weights = self.q.get()[1]
+			logger.info(self.q.get())
 		if self.split_layer == (config.model_len -1):
 			self.net.load_state_dict(weights)
 		else:
@@ -60,7 +61,8 @@ class Client(Communicator):
 		msg = ['MSG_TEST_NETWORK', self.uninet.cpu().state_dict()]
 		self.send_msg(msg)
 		# msg = self.recv_msg(self.sock, 'MSG_TEST_NETWORK')[1]
-		while not self.q.empty():
+		msg = None
+		while msg is None:
 			msg = self.q.get()[1]
 
 		network_time_end = time.time()
@@ -95,7 +97,7 @@ class Client(Communicator):
 
 				# Wait receiving server gradients
 				gradients = None
-				while not self.q.empty():
+				while gradients is None:
 					# gradients = self.recv_msg(self.sock)[1].to(self.device)
 					gradients = self.q.get()[1]
 

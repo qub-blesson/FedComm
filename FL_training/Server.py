@@ -11,6 +11,9 @@ import random
 import numpy as np
 
 import logging
+
+import json
+
 logging.basicConfig(level = logging.INFO,format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
@@ -31,8 +34,12 @@ class Server(Communicator):
 		self.port = server_port
 		self.model_name = model_name
 
-		while self.connections < config.K:
-			logger.info("Waiting Incoming Connections.")
+		logger.info("Waiting Incoming Connections.")
+		connections = 0
+		while connections < config.K:
+			connections += int(self.q.get())
+
+		logger.info("Clients have connected")
 
 		self.uninet = utils.get_model('Unit', self.model_name, config.model_len-1, self.device, config.model_cfg)
 
@@ -62,10 +69,16 @@ class Server(Communicator):
 					self.nets[client_ip] = utils.get_model('Server', self.model_name, split_layers[i], self.device, config.model_cfg)
 			self.criterion = nn.CrossEntropyLoss()
 
-		msg = ['MSG_INITIAL_GLOBAL_WEIGHTS_SERVER_TO_CLIENT', self.uninet.state_dict()]
+		#msg = ['MSG_INITIAL_GLOBAL_WEIGHTS_SERVER_TO_CLIENT', self.uninet.state_dict()]
+		# TODO: Find a way to send params and message in correct format
+		msg = self.uninet.state_dict()
+		# convert to string
+		msg = json.dumps(msg)
+		logger.info(msg)
 		#for i in self.client_socks:
 			#self.send_msg(self.client_socks[i], msg)
 		self.send_msg(msg)
+		logger.info("message sent to clients")
 
 	def train(self, thread_number, client_ips):
 		# Network test
@@ -81,7 +94,7 @@ class Server(Communicator):
 		# for s in self.client_socks:
 			# msg = self.recv_msg(self.client_socks[s], 'MSG_TEST_NETWORK')
 		msg = None
-		while not self.q.empty():
+		while msg is None:
 			msg = self.q.get()
 		self.bandwidth[msg[1]] = msg[2]
 
@@ -105,7 +118,7 @@ class Server(Communicator):
 		# for s in self.client_socks:
 			# msg = self.recv_msg(self.client_socks[s], 'MSG_TRAINING_TIME_PER_ITERATION')
 		msg = None
-		while not self.q.empty():
+		while msg is None:
 			msg = self.q.get()
 		self.ttpi[msg[1]] = msg[2]
 
@@ -117,7 +130,8 @@ class Server(Communicator):
 
 	def _thread_network_testing(self, client_ip):
 		# msg = self.recv_msg(self.client_socks[client_ip], 'MSG_TEST_NETWORK')
-		while not self.q.empty():
+		msg = None
+		while msg is None:
 			msg = self.q.get()
 		msg = ['MSG_TEST_NETWORK', self.uninet.cpu().state_dict()]
 		# self.send_msg(self.client_socks[client_ip], msg)
@@ -131,7 +145,7 @@ class Server(Communicator):
 		for i in range(iteration):
 			# msg = self.recv_msg(self.client_socks[client_ip], 'MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER')
 			msg = None
-			while not self.q.empty():
+			while msg is None:
 				msg = self.q.get()
 			smashed_layers = msg[1]
 			labels = msg[2]
@@ -156,7 +170,7 @@ class Server(Communicator):
 		for i in range(len(client_ips)):
 			msg = None
 			# msg = self.recv_msg(self.client_socks[client_ips[i]], 'MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER')
-			while not self.q.empty():
+			while msg is None:
 				msg = self.q.get()
 			if config.split_layer[i] != (config.model_len -1):
 				w_local = (utils.concat_weights(self.uninet.state_dict(),msg[1],self.nets[client_ips[i]].state_dict()),config.N / config.K)

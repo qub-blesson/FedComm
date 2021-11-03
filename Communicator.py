@@ -7,12 +7,13 @@ from queue import Queue
 
 import logging
 import paho.mqtt.client as mqtt
+
+import config
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-
 class Communicator(object):
-    connections = 0
     def __init__(self, index, ip_address, host, port, pub_topic='fedadapt', sub_topic='fedadapt', client_num=0):
         self.client_id = index
         self.ip = ip_address
@@ -32,16 +33,16 @@ class Communicator(object):
         # start communication
         self.client.loop_start()
 
-    # standard socket communication
+    # TODO: Find a way to send params and message
     def send_msg(self, msg):
-        if self.client_id == 0:
+        msg_pickle = pickle.dumps(msg)
+        if self.client_id == config.K:
             # server
-            # logging.info("topic = %s" % str(self.pub_topic))
-            self.client.publish(self.pub_topic, msg)
-            logging.info("sent")
+            self.client.publish(self.pub_topic, msg_pickle)
+            logger.info("sent")
         else:
             # client
-            self.client.publish(self.pub_topic, msg)
+            self.client.publish(self.pub_topic, msg_pickle)
 
     def recv_msg(self, sock, expect_msg_type=None):
         msg_len = struct.unpack(">I", sock.recv(4))[0]
@@ -60,6 +61,8 @@ class Communicator(object):
     def on_connect(self, client, userdata, flags, rc):
         logging.info("Connected flags" + str(flags) + "result code " + str(rc))
         self.client.subscribe(self.sub_topic)
+        if self.client_id != config.K:
+            self.client.publish(self.pub_topic, 1)
 
     def on_disconnect(self, client, userdata, rc):
         logging.info("Disconnect result code: " + str(rc))
@@ -71,8 +74,7 @@ class Communicator(object):
     # equivalent to recv_msg
     def on_message(self, client, userdata, message):
         msg = str(message.payload.decode("utf-8"))
-        self.client.publish("Message Received")
-        self.q.put(message)
+        self.q.put(msg)
 
     def on_subscribe(self, client, userdata, mid, granted_qos):
         print("Subscribe message id: " + str(mid))
