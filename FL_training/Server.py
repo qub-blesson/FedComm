@@ -12,8 +12,6 @@ import numpy as np
 
 import logging
 
-import json
-
 logging.basicConfig(level = logging.INFO,format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
@@ -69,34 +67,20 @@ class Server(Communicator):
 					self.nets[client_ip] = utils.get_model('Server', self.model_name, split_layers[i], self.device, config.model_cfg)
 			self.criterion = nn.CrossEntropyLoss()
 
-		#msg = ['MSG_INITIAL_GLOBAL_WEIGHTS_SERVER_TO_CLIENT', self.uninet.state_dict()]
+		msg = ['MSG_INITIAL_GLOBAL_WEIGHTS_SERVER_TO_CLIENT', self.uninet.state_dict()]
 		# TODO: Find a way to send params and message in correct format
-		msg = self.uninet.state_dict()
-		# convert to string
-		msg = json.dumps(msg)
-		logger.info(msg)
-		#for i in self.client_socks:
-			#self.send_msg(self.client_socks[i], msg)
 		self.send_msg(msg)
-		logger.info("message sent to clients")
 
 	def train(self, thread_number, client_ips):
 		# Network test
-		self.net_threads = {}
-		for i in range(len(client_ips)):
-			self.net_threads[client_ips[i]] = threading.Thread(target=self._thread_network_testing, args=(client_ips[i],))
-			self.net_threads[client_ips[i]].start()
-
-		for i in range(len(client_ips)):
-			self.net_threads[client_ips[i]].join()
+		self._thread_network_testing()
 
 		self.bandwidth = {}
-		# for s in self.client_socks:
-			# msg = self.recv_msg(self.client_socks[s], 'MSG_TEST_NETWORK')
-		msg = None
-		while msg is None:
+		connections = 0
+		while connections != config.K:
 			msg = self.q.get()
-		self.bandwidth[msg[1]] = msg[2]
+			connections += 1
+			self.bandwidth[msg[1]] = msg[2]
 
 		# Training start
 		self.threads = {}
@@ -117,10 +101,14 @@ class Server(Communicator):
 		self.ttpi = {} # Training time per iteration
 		# for s in self.client_socks:
 			# msg = self.recv_msg(self.client_socks[s], 'MSG_TRAINING_TIME_PER_ITERATION')
-		msg = None
-		while msg is None:
+		connections = 0
+		while connections != config.K:
 			msg = self.q.get()
-		self.ttpi[msg[1]] = msg[2]
+			while msg[0] != 'MSG_TRAINING_TIME_PER_ITERATION':
+				self.q.put(msg)
+				msg = self.q.get()
+			connections += 1
+			self.ttpi[msg[1]] = msg[2]
 
 		self.group_labels = self.clustering(self.ttpi, self.bandwidth)
 		self.offloading = self.get_offloading(self.split_layers)
@@ -128,11 +116,13 @@ class Server(Communicator):
 
 		return state, self.bandwidth
 
-	def _thread_network_testing(self, client_ip):
+	def _thread_network_testing(self):
 		# msg = self.recv_msg(self.client_socks[client_ip], 'MSG_TEST_NETWORK')
 		msg = None
-		while msg is None:
-			msg = self.q.get()
+		connections = 0
+		while connections != config.K:
+			connections += 1
+			self.q.get()
 		msg = ['MSG_TEST_NETWORK', self.uninet.cpu().state_dict()]
 		# self.send_msg(self.client_socks[client_ip], msg)
 		self.send_msg(msg)
@@ -180,7 +170,7 @@ class Server(Communicator):
 				w_local_list.append(w_local)
 		zero_model = utils.zero_init(self.uninet).state_dict()
 		aggregrated_model = utils.fed_avg(zero_model, w_local_list, config.N)
-		
+
 		self.uninet.load_state_dict(aggregrated_model)
 		return aggregrated_model
 
@@ -210,6 +200,7 @@ class Server(Communicator):
 
 	def clustering(self, state, bandwidth):
 		#sort bandwidth in config.CLIENTS_LIST order
+		logger.info(bandwidth)
 		bandwidth_order =[]
 		for c in config.CLIENTS_LIST:
 			bandwidth_order.append(bandwidth[c])
@@ -254,7 +245,7 @@ class Server(Communicator):
 
 		split_layer = []
 		for v in action:
-			idx = np.where(np.abs(model_flops_list - v) == np.abs(model_flops_list - v).min()) 
+			idx = np.where(np.abs(model_flops_list - v) == np.abs(model_flops_list - v).min())
 			idx = idx[0][-1]
 			if idx >= 5: # all FC layers combine to one option
 				idx = 6

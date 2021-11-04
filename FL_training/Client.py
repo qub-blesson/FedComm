@@ -46,8 +46,7 @@ class Client(Communicator):
 		logger.debug('Receiving Global Weights..')
 		weights = None
 		while weights is None:
-			# weights = self.q.get()[1]
-			logger.info(self.q.get())
+			weights = self.q.get()[1]
 		if self.split_layer == (config.model_len -1):
 			self.net.load_state_dict(weights)
 		else:
@@ -60,11 +59,10 @@ class Client(Communicator):
 		network_time_start = time.time()
 		msg = ['MSG_TEST_NETWORK', self.uninet.cpu().state_dict()]
 		self.send_msg(msg)
-		# msg = self.recv_msg(self.sock, 'MSG_TEST_NETWORK')[1]
+
 		msg = None
 		while msg is None:
 			msg = self.q.get()[1]
-
 		network_time_end = time.time()
 		network_speed = (2 * config.model_size * 8) / (network_time_end - network_time_start) #Mbit/s
 
@@ -112,6 +110,7 @@ class Client(Communicator):
 
 		msg = ['MSG_TRAINING_TIME_PER_ITERATION', self.ip, training_time_pr]
 		self.send_msg(msg)
+		logger.info(msg)
 
 		return e_time_total - s_time_total
 

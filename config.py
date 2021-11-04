@@ -9,7 +9,6 @@ G = 2 # Number of groups
 
 # Unique clients order
 HOST2IP = {'xubuntuclient1-VirtualBox':'192.168.0.10' , 'xubuntuclient2-VirtualBox':'192.168.0.11'}
-# changed to 1 and 2, so server ID can be 0
 CLIENTS_CONFIG= {'192.168.0.10':0, '192.168.0.11':1}
 CLIENTS_LIST= ['192.168.0.10', '192.168.0.11']
 

@@ -38,11 +38,12 @@ class Communicator(object):
         msg_pickle = pickle.dumps(msg)
         if self.client_id == config.K:
             # server
+            logger.info("server sent")
             self.client.publish(self.pub_topic, msg_pickle)
-            logger.info("sent")
         else:
             # client
             self.client.publish(self.pub_topic, msg_pickle)
+            logger.info("client sent")
 
     def recv_msg(self, sock, expect_msg_type=None):
         msg_len = struct.unpack(">I", sock.recv(4))[0]
@@ -62,10 +63,12 @@ class Communicator(object):
         logging.info("Connected flags" + str(flags) + "result code " + str(rc))
         self.client.subscribe(self.sub_topic)
         if self.client_id != config.K:
-            self.client.publish(self.pub_topic, 1)
+            self.send_msg("1")
 
     def on_disconnect(self, client, userdata, rc):
         logging.info("Disconnect result code: " + str(rc))
+        self.client.loop_stop()
+        self.client.disconnect()
 
     def __del__(self):
         self.client.loop_stop()
@@ -73,7 +76,7 @@ class Communicator(object):
 
     # equivalent to recv_msg
     def on_message(self, client, userdata, message):
-        msg = str(message.payload.decode("utf-8"))
+        msg = pickle.loads(message.payload)
         self.q.put(msg)
 
     def on_subscribe(self, client, userdata, mid, granted_qos):
