@@ -6,10 +6,7 @@ import time
 import numpy as np
 import sys
 
-import Communicator
-
 sys.path.append('../')
-import config
 import utils
 from Communicator import *
 
@@ -29,8 +26,6 @@ class Client(Communicator):
 		self.model_name = model_name
 		self.uninet = utils.get_model('Unit', self.model_name, config.model_len-1, self.device, config.model_cfg)
 
-		logger.info('Connecting to Server.')
-
 
 	def initialize(self, split_layer, offload, first, LR):
 		if offload or first:
@@ -43,10 +38,10 @@ class Client(Communicator):
 
 		self.optimizer = optim.SGD(self.net.parameters(), lr=LR,
 					  momentum=0.9)
+
 		logger.debug('Receiving Global Weights..')
-		weights = None
-		while weights is None:
-			weights = self.q.get()[1]
+		weights = self.q.get()[1]
+
 		if self.split_layer == (config.model_len -1):
 			self.net.load_state_dict(weights)
 		else:
@@ -60,9 +55,7 @@ class Client(Communicator):
 		msg = ['MSG_TEST_NETWORK', self.uninet.cpu().state_dict()]
 		self.send_msg(msg)
 
-		msg = None
-		while msg is None:
-			msg = self.q.get()[1]
+		msg = self.q.get()[1]
 		network_time_end = time.time()
 		network_speed = (2 * config.model_size * 8) / (network_time_end - network_time_start) #Mbit/s
 
@@ -94,10 +87,7 @@ class Client(Communicator):
 				self.send_msg(msg)
 
 				# Wait receiving server gradients
-				gradients = None
-				while gradients is None:
-					# gradients = self.recv_msg(self.sock)[1].to(self.device)
-					gradients = self.q.get()[1]
+				gradients = self.q.get()[1]
 
 				outputs.backward(gradients)
 				self.optimizer.step()

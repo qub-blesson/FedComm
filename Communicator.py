@@ -1,8 +1,6 @@
 # Communicator Object
 
 import pickle
-import struct
-import socket
 from queue import Queue
 
 import logging
@@ -22,6 +20,7 @@ class Communicator(object):
         self.client_num = client_num
         # create client
         self.client = mqtt.Client(str(self.client_id))
+        # create message queue
         self.q = Queue()
         # assign functionality
         self.client.on_connect = self.on_connect
@@ -33,42 +32,24 @@ class Communicator(object):
         # start communication
         self.client.loop_start()
 
-    # TODO: Find a way to send params and message
     def send_msg(self, msg):
         msg_pickle = pickle.dumps(msg)
         if self.client_id == config.K:
             # server
-            logger.info("server sent")
             self.client.publish(self.pub_topic, msg_pickle)
         else:
             # client
             self.client.publish(self.pub_topic, msg_pickle)
-            logger.info("client sent")
-
-    def recv_msg(self, sock, expect_msg_type=None):
-        msg_len = struct.unpack(">I", sock.recv(4))[0]
-        msg = sock.recv(msg_len, socket.MSG_WAITALL)
-        msg = pickle.loads(msg)
-        logger.debug(msg[0] + 'received from' + str(sock.getpeername()[0]) + ':' + str(sock.getpeername()[1]))
-
-        if expect_msg_type is not None:
-            if msg[0] == 'Finish':
-                return msg
-            elif msg[0] != expect_msg_type:
-                raise Exception("Expected " + expect_msg_type + " but received " + msg[0])
-        return msg
 
     # MQTT functionality below
     def on_connect(self, client, userdata, flags, rc):
-        logging.info("Connected flags" + str(flags) + "result code " + str(rc))
+        logger.info('Connecting to MQTT Server.')
         self.client.subscribe(self.sub_topic)
         if self.client_id != config.K:
             self.send_msg("1")
 
     def on_disconnect(self, client, userdata, rc):
-        logging.info("Disconnect result code: " + str(rc))
-        self.client.loop_stop()
-        self.client.disconnect()
+        logging.info("Client %d Disconnect result code: " + str(rc), self.client_id)
 
     def __del__(self):
         self.client.loop_stop()
@@ -76,6 +57,7 @@ class Communicator(object):
 
     # equivalent to recv_msg
     def on_message(self, client, userdata, message):
+        # load message and put into queue
         msg = pickle.loads(message.payload)
         self.q.put(msg)
 

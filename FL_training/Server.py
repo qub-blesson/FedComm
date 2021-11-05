@@ -5,9 +5,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torchvision
 import torchvision.transforms as transforms
-import threading
 import tqdm
-import random
 import numpy as np
 
 import logging
@@ -45,7 +43,7 @@ class Server(Communicator):
 ])
 		self.testset = torchvision.datasets.CIFAR10(root=config.dataset_path, train=False, download=False, transform=self.transform_test)
 		self.testloader = torch.utils.data.DataLoader(self.testset, batch_size=100, shuffle=False, num_workers=4)
- 		
+
 	def initialize(self, split_layers, offload, first, LR):
 		if offload or first:
 			self.split_layers = split_layers
@@ -53,10 +51,10 @@ class Server(Communicator):
 			self.optimizers= {}
 			for i in range(len(split_layers)):
 				client_ip = config.CLIENTS_LIST[i]
-				if split_layers[i] < len(config.model_cfg[self.model_name]) -1: # Only offloading client need initialize optimizer in server
+				if split_layers[i] < len(config.model_cfg[self.model_name])-1: # Only offloading client need initialize optimizer in server
 					self.nets[client_ip] = utils.get_model('Server', self.model_name, split_layers[i], self.device, config.model_cfg)
 
-					#offloading weight in server also need to be initialized from the same global weight
+					# offloading weight in server also need to be initialized from the same global weight
 					cweights = utils.get_model('Client', self.model_name, split_layers[i], self.device, config.model_cfg).state_dict()
 					pweights = utils.split_weights_server(self.uninet.state_dict(),cweights,self.nets[client_ip].state_dict())
 					self.nets[client_ip].load_state_dict(pweights)
@@ -68,7 +66,6 @@ class Server(Communicator):
 			self.criterion = nn.CrossEntropyLoss()
 
 		msg = ['MSG_INITIAL_GLOBAL_WEIGHTS_SERVER_TO_CLIENT', self.uninet.state_dict()]
-		# TODO: Find a way to send params and message in correct format
 		self.send_msg(msg)
 
 	def train(self, thread_number, client_ips):
@@ -86,21 +83,11 @@ class Server(Communicator):
 		self.threads = {}
 		for i in range(len(client_ips)):
 			if config.split_layer[i] == (config.model_len -1):
-				self.threads[client_ips[i]] = threading.Thread(target=self._thread_training_no_offloading, args=(client_ips[i],))
 				logger.info(str(client_ips[i]) + ' no offloading training start')
-				self.threads[client_ips[i]].start()
 			else:
-				logger.info(str(client_ips[i]))
-				self.threads[client_ips[i]] = threading.Thread(target=self._thread_training_offloading, args=(client_ips[i],))
 				logger.info(str(client_ips[i]) + ' offloading training start')
-				self.threads[client_ips[i]].start()
-
-		for i in range(len(client_ips)):
-			self.threads[client_ips[i]].join()
 
 		self.ttpi = {} # Training time per iteration
-		# for s in self.client_socks:
-			# msg = self.recv_msg(self.client_socks[s], 'MSG_TRAINING_TIME_PER_ITERATION')
 		connections = 0
 		while connections != config.K:
 			msg = self.q.get()
@@ -117,14 +104,11 @@ class Server(Communicator):
 		return state, self.bandwidth
 
 	def _thread_network_testing(self):
-		# msg = self.recv_msg(self.client_socks[client_ip], 'MSG_TEST_NETWORK')
-		msg = None
 		connections = 0
 		while connections != config.K:
-			connections += 1
 			self.q.get()
+			connections += 1
 		msg = ['MSG_TEST_NETWORK', self.uninet.cpu().state_dict()]
-		# self.send_msg(self.client_socks[client_ip], msg)
 		self.send_msg(msg)
 
 	def _thread_training_no_offloading(self, client_ip):
@@ -133,7 +117,6 @@ class Server(Communicator):
 	def _thread_training_offloading(self, client_ip):
 		iteration = int((config.N / (config.K * config.B)))
 		for i in range(iteration):
-			# msg = self.recv_msg(self.client_socks[client_ip], 'MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER')
 			msg = None
 			while msg is None:
 				msg = self.q.get()
@@ -149,7 +132,6 @@ class Server(Communicator):
 
 			# Send gradients to client
 			msg = ['MSG_SERVER_GRADIENTS_SERVER_TO_CLIENT_'+str(client_ip), inputs.grad]
-			# self.send_msg(self.client_socks[client_ip], msg)
 			self.send_msg(msg)
 
 		logger.info(str(client_ip) + ' offloading training end')
@@ -159,7 +141,6 @@ class Server(Communicator):
 		w_local_list =[]
 		for i in range(len(client_ips)):
 			msg = None
-			# msg = self.recv_msg(self.client_socks[client_ips[i]], 'MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER')
 			while msg is None:
 				msg = self.q.get()
 			if config.split_layer[i] != (config.model_len -1):
@@ -199,7 +180,7 @@ class Server(Communicator):
 		return acc
 
 	def clustering(self, state, bandwidth):
-		#sort bandwidth in config.CLIENTS_LIST order
+		# sort bandwidth in config.CLIENTS_LIST order
 		logger.info(bandwidth)
 		bandwidth_order =[]
 		for c in config.CLIENTS_LIST:
@@ -291,6 +272,4 @@ class Server(Communicator):
 		self.initialize(split_layers, offload, first, LR)
 
 	def scatter(self, msg):
-		# for i in self.client_socks:
-			# self.send_msg(self.client_socks[i], msg)
 		self.send_msg(msg)
