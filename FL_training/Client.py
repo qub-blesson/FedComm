@@ -100,7 +100,6 @@ class Client(Communicator):
 
 		msg = ['MSG_TRAINING_TIME_PER_ITERATION', self.ip, training_time_pr]
 		self.send_msg(msg)
-		logger.info(msg)
 
 		return e_time_total - s_time_total
 

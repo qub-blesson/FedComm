@@ -30,12 +30,11 @@ class Server(Communicator):
 		self.port = server_port
 		self.model_name = model_name
 
-		logger.info("Waiting Incoming Connections.")
 		connections = 0
 		while connections < config.K:
 			connections += int(self.q.get())
 
-		logger.info("Clients have connected")
+		logger.info("Clients have connected to MQTT Server")
 
 		self.uninet = utils.get_model('Unit', self.model_name, config.model_len-1, self.device, config.model_cfg)
 
