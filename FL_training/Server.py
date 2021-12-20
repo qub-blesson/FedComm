@@ -1,4 +1,4 @@
-
+import time
 
 import torch
 import torch.nn as nn
@@ -69,12 +69,16 @@ class Server(Communicator):
 
 	def train(self, thread_number, client_ips):
 		# Network test
+		start = time.time()
 		self._thread_network_testing()
+		config.comm_time += time.time() - start
 
 		self.bandwidth = {}
 		connections = 0
 		while connections != config.K:
+			start = time.time()
 			msg = self.q.get()
+			config.comm_time += time.time() - start
 			connections += 1
 			self.bandwidth[msg[1]] = msg[2]
 
@@ -89,10 +93,14 @@ class Server(Communicator):
 		self.ttpi = {} # Training time per iteration
 		connections = 0
 		while connections != config.K:
+			start = time.time()
 			msg = self.q.get()
+			config.comm_time += time.time() - start
 			while msg[0] != 'MSG_TRAINING_TIME_PER_ITERATION':
+				start = time.time()
 				self.q.put(msg)
 				msg = self.q.get()
+				config.comm_time += time.time() - start
 			connections += 1
 			self.ttpi[msg[1]] = msg[2]
 
@@ -141,7 +149,9 @@ class Server(Communicator):
 		for i in range(len(client_ips)):
 			msg = None
 			while msg is None:
+				start = time.time()
 				msg = self.q.get()
+				config.comm_time += time.time() - start
 			if config.split_layer[i] != (config.model_len -1):
 				w_local = (utils.concat_weights(self.uninet.state_dict(),msg[1],self.nets[client_ips[i]].state_dict()),config.N / config.K)
 				w_local_list.append(w_local)

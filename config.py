@@ -19,6 +19,9 @@ home = sys.path[0].split('FedAdapt')[0] + 'FedAdapt'
 dataset_path = "../datasets/CIFAR10/"
 N = 50000  # data length
 
+# train communication time
+comm_time = 0.0
+
 # Model configration
 model_cfg = {
     # (Type, in_channels, out_channels, kernel_size, out_size(c_out*h*w), flops(c_out*h*w*k*k*c_in))
@@ -36,7 +39,7 @@ split_layer = [6, 6]  # Initial split layers
 model_len = 7
 
 # FL training configration
-R = 100  # FL rounds
+R = 5  # FL rounds
 LR = 0.01  # Learning rate
 B = 100  # Batch size
 
