@@ -279,3 +279,9 @@ class Sever(Communicator):
 	def scatter(self, msg):
 		for i in self.client_socks:
 			self.send_msg(self.client_socks[i], msg)
+
+	def finish(self, client_ips):
+		msg = []
+		for i in range(len(client_ips)):
+			msg[i] = self.recv_msg(self.client_socks[client_ips[i]], 'MSG_COMMUNICATION_TIME')
+		return max(msg)

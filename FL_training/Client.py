@@ -113,8 +113,12 @@ class Client(Communicator):
 		start = time.time()
 		self.send_msg(self.sock, msg)
 		config.comm_time += (time.time() - start)
-		logger.info(config.comm_time)
 
 	def reinitialize(self, split_layers, offload, first, LR):
 		self.initialize(split_layers, offload, first, LR)
+
+	def finish(self):
+		msg = ['MSG_COMMUNICATION_TIME', config.comm_time]
+		self.send_msg(self.sock, msg)
+
 
