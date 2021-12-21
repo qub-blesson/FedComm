@@ -78,4 +78,4 @@ for r in range(config.R):
 	sever.reinitialize(split_layers, offload, first, LR)
 	logger.info('==> Reinitialization Finish')
 comm_time = sever.finish(config.CLIENTS_LIST)
-logger.info(comm_time)
+res['communication_time'].append(comm_time)

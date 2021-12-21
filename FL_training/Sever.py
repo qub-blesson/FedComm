@@ -77,9 +77,7 @@ class Sever(Communicator):
 		self.net_threads = {}
 		for i in range(len(client_ips)):
 			self.net_threads[client_ips[i]] = threading.Thread(target=self._thread_network_testing, args=(client_ips[i],))
-			start = time.time()
 			self.net_threads[client_ips[i]].start()
-			config.comm_time += time.time() - start
 
 		for i in range(len(client_ips)):
 			self.net_threads[client_ips[i]].join()
@@ -283,5 +281,5 @@ class Sever(Communicator):
 	def finish(self, client_ips):
 		msg = []
 		for i in range(len(client_ips)):
-			msg[i] = self.recv_msg(self.client_socks[client_ips[i]], 'MSG_COMMUNICATION_TIME')
+			msg.append(self.recv_msg(self.client_socks[client_ips[i]], 'MSG_COMMUNICATION_TIME')[1])
 		return max(msg)
