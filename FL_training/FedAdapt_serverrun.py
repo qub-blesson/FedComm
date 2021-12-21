@@ -41,7 +41,7 @@ else:
 	logger.info('Classic FL Training')
 
 res = {}
-res['trianing_time'], res['test_acc_record'], res['bandwidth_record'] = [], [], []
+res['trianing_time'], res['test_acc_record'], res['bandwidth_record'], res['communication_time'] = [], [], [], []
 
 for r in range(config.R):
 	logger.info('====================================>')
@@ -55,6 +55,8 @@ for r in range(config.R):
 	# Recording each round training time, bandwidth and test accuracy
 	trianing_time = e_time - s_time
 	res['trianing_time'].append(trianing_time)
+	res['communication_time'].append(config.comm_time)
+	config.comm_time = 0.0
 	res['bandwidth_record'].append(bandwidth)
 
 	test_acc = sever.test(r)
