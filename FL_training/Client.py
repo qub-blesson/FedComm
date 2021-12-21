@@ -53,14 +53,20 @@ class Client(Communicator):
 		# Network speed test
 		network_time_start = time.time()
 		msg = ['MSG_TEST_NETWORK', self.uninet.cpu().state_dict()]
+		start = time.time()
 		self.send_msg(self.sock, msg)
+		end = time.time()
+		logger.info(end-start)
 		msg = self.recv_msg(self.sock,'MSG_TEST_NETWORK')[1]
 		network_time_end = time.time()
 		network_speed = (2 * config.model_size * 8) / (network_time_end - network_time_start) #Mbit/s 
 
 		logger.info('Network speed is {:}'.format(network_speed))
 		msg = ['MSG_TEST_NETWORK', self.ip, network_speed]
+		start = time.time()
 		self.send_msg(self.sock, msg)
+		end = time.time()
+		logger.info(end - start)
 
 		# Training start
 		s_time_total = time.time()
@@ -83,7 +89,9 @@ class Client(Communicator):
 				outputs = self.net(inputs)
 
 				msg = ['MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER', outputs.cpu(), targets.cpu()]
+				start = time.time()
 				self.send_msg(self.sock, msg)
+				end = time.time()
 
 				# Wait receiving server gradients
 				gradients = self.recv_msg(self.sock)[1].to(self.device)
@@ -98,13 +106,19 @@ class Client(Communicator):
 		logger.info('training_time_per_iteration: ' + str(training_time_pr))
 
 		msg = ['MSG_TRAINING_TIME_PER_ITERATION', self.ip, training_time_pr]
+		start = time.time()
 		self.send_msg(self.sock, msg)
+		end = time.time()
+		logger.info(end-start)
 
 		return e_time_total - s_time_total
 		
 	def upload(self):
 		msg = ['MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER', self.net.cpu().state_dict()]
+		start = time.time()
 		self.send_msg(self.sock, msg)
+		end = time.time()
+		logger.info(end-start)
 
 	def reinitialize(self, split_layers, offload, first, LR):
 		self.initialize(split_layers, offload, first, LR)

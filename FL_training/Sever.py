@@ -86,9 +86,7 @@ class Sever(Communicator):
 
 		self.bandwidth = {}
 		for s in self.client_socks:
-			start = time.time()
 			msg = self.recv_msg(self.client_socks[s], 'MSG_TEST_NETWORK')
-			config.comm_time += time.time() - start
 			self.bandwidth[msg[1]] = msg[2]
 
 		# Training start
@@ -109,9 +107,7 @@ class Sever(Communicator):
 
 		self.ttpi = {} # Training time per iteration
 		for s in self.client_socks:
-			start = time.time()
 			msg = self.recv_msg(self.client_socks[s], 'MSG_TRAINING_TIME_PER_ITERATION')
-			config.comm_time += time.time() - start
 			self.ttpi[msg[1]] = msg[2]
 
 		self.group_labels = self.clustering(self.ttpi, self.bandwidth)
@@ -152,9 +148,7 @@ class Sever(Communicator):
 	def aggregate(self, client_ips):
 		w_local_list =[]
 		for i in range(len(client_ips)):
-			start = time.time()
 			msg = self.recv_msg(self.client_socks[client_ips[i]], 'MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER')
-			config.comm_time += time.time() - start
 			if config.split_layer[i] != (config.model_len -1):
 				w_local = (utils.concat_weights(self.uninet.state_dict(),msg[1],self.nets[client_ips[i]].state_dict()),config.N / config.K)
 				w_local_list.append(w_local)
