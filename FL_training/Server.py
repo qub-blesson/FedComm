@@ -65,20 +65,18 @@ class Server(Communicator):
 			self.criterion = nn.CrossEntropyLoss()
 
 		msg = ['MSG_INITIAL_GLOBAL_WEIGHTS_SERVER_TO_CLIENT', self.uninet.state_dict()]
+		start = time.time()
 		self.send_msg(msg)
+		config.comm_time += (time.time() - start)
 
 	def train(self, thread_number, client_ips):
 		# Network test
-		start = time.time()
 		self._thread_network_testing()
-		config.comm_time += time.time() - start
 
 		self.bandwidth = {}
 		connections = 0
 		while connections != config.K:
-			start = time.time()
 			msg = self.q.get()
-			config.comm_time += time.time() - start
 			connections += 1
 			self.bandwidth[msg[1]] = msg[2]
 
@@ -93,14 +91,10 @@ class Server(Communicator):
 		self.ttpi = {} # Training time per iteration
 		connections = 0
 		while connections != config.K:
-			start = time.time()
 			msg = self.q.get()
-			config.comm_time += time.time() - start
 			while msg[0] != 'MSG_TRAINING_TIME_PER_ITERATION':
-				start = time.time()
 				self.q.put(msg)
 				msg = self.q.get()
-				config.comm_time += time.time() - start
 			connections += 1
 			self.ttpi[msg[1]] = msg[2]
 
@@ -116,7 +110,9 @@ class Server(Communicator):
 			self.q.get()
 			connections += 1
 		msg = ['MSG_TEST_NETWORK', self.uninet.cpu().state_dict()]
+		start = time.time()
 		self.send_msg(msg)
+		config.comm_time += (time.time() - start)
 
 	def _thread_training_no_offloading(self, client_ip):
 		pass
@@ -139,7 +135,9 @@ class Server(Communicator):
 
 			# Send gradients to client
 			msg = ['MSG_SERVER_GRADIENTS_SERVER_TO_CLIENT_'+str(client_ip), inputs.grad]
+			start = time.time()
 			self.send_msg(msg)
+			config.comm_time += (time.time() - start)
 
 		logger.info(str(client_ip) + ' offloading training end')
 		return 'Finish'
@@ -149,9 +147,7 @@ class Server(Communicator):
 		for i in range(len(client_ips)):
 			msg = None
 			while msg is None:
-				start = time.time()
 				msg = self.q.get()
-				config.comm_time += time.time() - start
 			if config.split_layer[i] != (config.model_len -1):
 				w_local = (utils.concat_weights(self.uninet.state_dict(),msg[1],self.nets[client_ips[i]].state_dict()),config.N / config.K)
 				w_local_list.append(w_local)
@@ -282,3 +278,14 @@ class Server(Communicator):
 
 	def scatter(self, msg):
 		self.send_msg(msg)
+
+	def finish(self):
+		msg = []
+		connections = 0
+		while connections != config.K:
+			msg = self.q.get()
+			while msg[0] != 'MSG_COMMUNICATION_TIME':
+				self.q.put(msg)
+				msg.append(self.q.get())
+			connections += 1
+		return max(msg)
