@@ -18,20 +18,14 @@ import sys
 
 sys.path.append('../')
 from Communicator import *
-from MQTT_Communicator import *
 import utils
 import config
 
 np.random.seed(0)
 torch.manual_seed(0)
 
-if config.COMM == 'MQTT':
-    Comm = MQTT_Communicator
-else:
-    Comm = Communicator
 
-
-class Sever(Comm):
+class Sever(Communicator):
     def __init__(self, index, ip_address, server_port, model_name):
         super(Sever, self).__init__(index, ip_address)
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -85,7 +79,7 @@ class Sever(Comm):
 
         msg = ['MSG_INITIAL_GLOBAL_WEIGHTS_SERVER_TO_CLIENT', self.uninet.state_dict()]
         for i in self.client_socks:
-            self.send_msg(self.client_socks[i], msg)
+            self.send_message(self.client_socks[i], msg)
 
     def train(self, thread_number, client_ips):
         # Network test
@@ -135,7 +129,7 @@ class Sever(Comm):
     def _thread_network_testing(self, client_ip):
         msg = self.recv_msg(self.client_socks[client_ip], 'MSG_TEST_NETWORK')
         msg = ['MSG_TEST_NETWORK', self.uninet.cpu().state_dict()]
-        self.send_msg(self.client_socks[client_ip], msg)
+        self.send_message(self.client_socks[client_ip], msg)
 
     def _thread_training_no_offloading(self, client_ip):
         pass
@@ -156,7 +150,7 @@ class Sever(Comm):
 
             # Send gradients to client
             msg = ['MSG_SERVER_GRADIENTS_SERVER_TO_CLIENT_' + str(client_ip), inputs.grad]
-            self.send_msg(self.client_socks[client_ip], msg)
+            self.send_message(self.client_socks[client_ip], msg)
 
         logger.info(str(client_ip) + ' offloading training end')
         return 'Finish'
@@ -295,7 +289,7 @@ class Sever(Comm):
 
     def scatter(self, msg):
         for i in self.client_socks:
-            self.send_msg(self.client_socks[i], msg)
+            self.send_message(self.client_socks[i], msg)
 
     def finish(self, client_ips):
         msg = []
