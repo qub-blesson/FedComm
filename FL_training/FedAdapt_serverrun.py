@@ -16,14 +16,20 @@ import PPO
 
 parser=argparse.ArgumentParser()
 parser.add_argument('--offload', help='FedAdapt or classic FL mode', type= utils.str2bool, default= False)
+parser.add_argument('--communicator', help='Communication protocol', default='TCP')
 args=parser.parse_args()
 
 LR = config.LR
 offload = args.offload
+communicator = args.communicator
 first = True # First initializaiton control
 
 logger.info('Preparing Sever.')
-sever = Sever(0, config.SERVER_ADDR, config.SERVER_PORT, 'VGG5')
+
+if communicator == 'TCP':
+	sever = Sever(0, config.SERVER_ADDR, config.SERVER_PORT, 'VGG5')
+elif communicator == 'MQTT':
+	sever = Sever(config.K, config.SERVER_ADDR, config.SERVER_PORT, 'VGG5')
 sever.initialize(config.split_layer, offload, first, LR)
 first = False
 
