@@ -1,5 +1,8 @@
 import sys
 
+# Communication config
+COMM = 'TCP'
+
 # Network configration
 SERVER_ADDR = '192.168.101.120'
 SERVER_PORT = 1883

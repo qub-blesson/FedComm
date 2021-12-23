@@ -11,7 +11,8 @@ import config
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-class Communicator(object):
+
+class MQTT_Communicator(object):
     def __init__(self, index, ip_address, host, port, pub_topic='fedadapt', sub_topic='fedadapt', client_num=0):
         self.client_id = index
         self.ip = ip_address

@@ -22,6 +22,7 @@ args=parser.parse_args()
 LR = config.LR
 offload = args.offload
 communicator = args.communicator
+config.COMM = communicator
 first = True # First initializaiton control
 
 logger.info('Preparing Sever.')
