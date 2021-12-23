@@ -2,7 +2,7 @@ import sys
 
 # Network configration
 SERVER_ADDR = '192.168.101.120'
-SERVER_PORT = 51000
+SERVER_PORT = 1883
 
 K = 4  # Number of devices
 G = 4  # Number of groups
