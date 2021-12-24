@@ -15,6 +15,9 @@ logger = logging.getLogger(__name__)
 
 class Communicator(object):
 	def __init__(self, index, ip_address, host='0.0.0.0', port='1883', pub_topic='fedadapt', sub_topic='fedadapt', client_num=0):
+		# all types
+		self.ip = ip_address
+		self.client = None
 		if config.COMM == 'TCP':
 			self.sock = socket.socket()
 		elif config.COMM == 'MQTT':
@@ -36,7 +39,6 @@ class Communicator(object):
 			self.client.connect(host, port)
 			# start communication
 			self.client.loop_start()
-		self.ip = ip_address
 
 
 	# TCP Functionality

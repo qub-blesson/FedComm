@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 import sys
 sys.path.append('../')
-from Sever import Sever
+from Server import Server
 import config
 import utils
 import PPO
@@ -28,10 +28,10 @@ first = True # First initializaiton control
 logger.info('Preparing Sever.')
 
 if communicator == 'TCP':
-	sever = Sever(0, config.SERVER_ADDR, config.SERVER_PORT, 'VGG5')
+	server = Server(0, config.SERVER_ADDR, config.SERVER_PORT, 'VGG5')
 elif communicator == 'MQTT':
-	sever = Sever(config.K, config.SERVER_ADDR, config.SERVER_PORT, 'VGG5')
-sever.initialize(config.split_layer, offload, first, LR)
+	server = Server(config.K, config.SERVER_ADDR, config.SERVER_PORT, 'VGG5')
+server.initialize(config.split_layer, offload, first, LR)
 first = False
 
 state_dim = 2*config.G
@@ -55,8 +55,8 @@ for r in range(config.R):
 	logger.info('==> Round {:} Start'.format(r))
 
 	s_time = time.time()
-	state, bandwidth = sever.train(thread_number= config.K, client_ips= config.CLIENTS_LIST)
-	aggregrated_model = sever.aggregate(config.CLIENTS_LIST)
+	state, bandwidth = server.train(thread_number= config.K, client_ips= config.CLIENTS_LIST)
+	aggregrated_model = server.aggregate(config.CLIENTS_LIST)
 	e_time = time.time()
 
 	# Recording each round training time, bandwidth and test accuracy
@@ -64,7 +64,7 @@ for r in range(config.R):
 	res['trianing_time'].append(trianing_time)
 	res['bandwidth_record'].append(bandwidth)
 
-	test_acc = sever.test(r)
+	test_acc = server.test(r)
 	res['test_acc_record'].append(test_acc)
 
 	with open('../results/FedAdapt_res.pkl','wb') as f:
@@ -75,16 +75,16 @@ for r in range(config.R):
 
 	logger.info('==> Reinitialization for Round : {:}'.format(r + 1))
 	if offload:
-		split_layers = sever.adaptive_offload(agent, state)
+		split_layers = server.adaptive_offload(agent, state)
 	else:
 		split_layers = config.split_layer
 
 	if r > 49:
 		LR = config.LR * 0.1
 
-	sever.reinitialize(split_layers, offload, first, LR)
+	server.reinitialize(split_layers, offload, first, LR)
 	logger.info('==> Reinitialization Finish')
-comm_time = sever.finish(config.CLIENTS_LIST)
+comm_time = server.finish(config.CLIENTS_LIST)
 res['communication_time'].append(comm_time)
 with open('../results/FedAdapt_res.pkl', 'wb') as f:
 	pickle.dump(res, f)

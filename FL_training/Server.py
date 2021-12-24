@@ -25,22 +25,31 @@ np.random.seed(0)
 torch.manual_seed(0)
 
 
-class Sever(Communicator):
+class Server(Communicator):
     def __init__(self, index, ip_address, server_port, model_name):
-        super(Sever, self).__init__(index, ip_address)
+        super(Server, self).__init__(index, ip_address, ip_address, server_port, pub_topic="fedserver",
+                                     sub_topic='fedadapt', client_num=config.K)
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.port = server_port
         self.model_name = model_name
-        self.sock.bind((self.ip, self.port))
-        self.client_socks = {}
 
-        while len(self.client_socks) < config.K:
-            self.sock.listen(5)
-            logger.info("Waiting Incoming Connections.")
-            (client_sock, (ip, port)) = self.sock.accept()
-            logger.info('Got connection from ' + str(ip))
-            logger.info(client_sock)
-            self.client_socks[str(ip)] = client_sock
+        if config.COMM == 'TCP':
+            self.sock.bind((self.ip, self.port))
+            self.client_socks = {}
+
+            while len(self.client_socks) < config.K:
+                self.sock.listen(5)
+                logger.info("Waiting Incoming Connections.")
+                (client_sock, (ip, port)) = self.sock.accept()
+                logger.info('Got connection from ' + str(ip))
+                logger.info(client_sock)
+                self.client_socks[str(ip)] = client_sock
+        elif config.COMM == 'MQTT':
+            connections = 0
+            while connections < config.K:
+                connections += int(self.q.get())
+
+            logger.info("Clients have connected to MQTT Server")
 
         self.uninet = utils.get_model('Unit', self.model_name, config.model_len - 1, self.device, config.model_cfg)
 
@@ -78,47 +87,76 @@ class Sever(Communicator):
             self.criterion = nn.CrossEntropyLoss()
 
         msg = ['MSG_INITIAL_GLOBAL_WEIGHTS_SERVER_TO_CLIENT', self.uninet.state_dict()]
-        for i in self.client_socks:
-            self.send_message(self.client_socks[i], msg)
+        if config.COMM == 'TCP':
+            for i in self.client_socks:
+                self.send_message(self.client_socks[i], msg)
+        elif config.COMM == 'MQTT':
+            self.send_msg(msg)
 
     def train(self, thread_number, client_ips):
         # Network test
         self.net_threads = {}
-        for i in range(len(client_ips)):
-            self.net_threads[client_ips[i]] = threading.Thread(target=self._thread_network_testing,
-                                                               args=(client_ips[i],))
-            self.net_threads[client_ips[i]].start()
-
-        for i in range(len(client_ips)):
-            self.net_threads[client_ips[i]].join()
-
         self.bandwidth = {}
-        for s in self.client_socks:
-            msg = self.recv_msg(self.client_socks[s], 'MSG_TEST_NETWORK')
-            self.bandwidth[msg[1]] = msg[2]
+
+        if config.COMM == 'TCP':
+            for i in range(len(client_ips)):
+                self.net_threads[client_ips[i]] = threading.Thread(target=self._thread_network_testing,
+                                                               args=(client_ips[i],))
+                self.net_threads[client_ips[i]].start()
+
+            for i in range(len(client_ips)):
+                self.net_threads[client_ips[i]].join()
+
+            for s in self.client_socks:
+                msg = self.recv_msg(self.client_socks[s], 'MSG_TEST_NETWORK')
+                self.bandwidth[msg[1]] = msg[2]
+        if config.COMM == 'MQTT':
+            connections = 0
+            while connections != config.K:
+                msg = self.q.get()
+                connections += 1
+                self.bandwidth[msg[1]] = msg[2]
 
         # Training start
         self.threads = {}
-        for i in range(len(client_ips)):
-            if config.split_layer[i] == (config.model_len - 1):
-                self.threads[client_ips[i]] = threading.Thread(target=self._thread_training_no_offloading,
-                                                               args=(client_ips[i],))
-                logger.info(str(client_ips[i]) + ' no offloading training start')
-                self.threads[client_ips[i]].start()
-            else:
-                logger.info(str(client_ips[i]))
-                self.threads[client_ips[i]] = threading.Thread(target=self._thread_training_offloading,
-                                                               args=(client_ips[i],))
-                logger.info(str(client_ips[i]) + ' offloading training start')
-                self.threads[client_ips[i]].start()
 
-        for i in range(len(client_ips)):
-            self.threads[client_ips[i]].join()
+        if config.COMM == 'TCP':
+            for i in range(len(client_ips)):
+                if config.split_layer[i] == (config.model_len - 1):
+                    self.threads[client_ips[i]] = threading.Thread(target=self._thread_training_no_offloading,
+                                                                   args=(client_ips[i],))
+                    logger.info(str(client_ips[i]) + ' no offloading training start')
+                    self.threads[client_ips[i]].start()
+                else:
+                    logger.info(str(client_ips[i]))
+                    self.threads[client_ips[i]] = threading.Thread(target=self._thread_training_offloading,
+                                                                   args=(client_ips[i],))
+                    logger.info(str(client_ips[i]) + ' offloading training start')
+                    self.threads[client_ips[i]].start()
+
+            for i in range(len(client_ips)):
+                self.threads[client_ips[i]].join()
+        elif config.COMM == 'MQTT':
+            for i in range(len(client_ips)):
+                if config.split_layer[i] == (config.model_len - 1):
+                    logger.info(str(client_ips[i]) + ' no offloading training start')
+                else:
+                    logger.info(str(client_ips[i]) + ' offloading training start')
 
         self.ttpi = {}  # Training time per iteration
-        for s in self.client_socks:
-            msg = self.recv_msg(self.client_socks[s], 'MSG_TRAINING_TIME_PER_ITERATION')
-            self.ttpi[msg[1]] = msg[2]
+        if config.COMM == 'TCP':
+            for s in self.client_socks:
+                msg = self.recv_msg(self.client_socks[s], 'MSG_TRAINING_TIME_PER_ITERATION')
+                self.ttpi[msg[1]] = msg[2]
+        elif config.COMM == 'MQTT':
+            connections = 0
+            while connections != config.K:
+                msg = self.q.get()
+                while msg[0] != 'MSG_TRAINING_TIME_PER_ITERATION':
+                    self.q.put(msg)
+                    msg = self.q.get()
+                connections += 1
+                self.ttpi[msg[1]] = msg[2]
 
         self.group_labels = self.clustering(self.ttpi, self.bandwidth)
         self.offloading = self.get_offloading(self.split_layers)
@@ -127,9 +165,17 @@ class Sever(Communicator):
         return state, self.bandwidth
 
     def _thread_network_testing(self, client_ip):
-        msg = self.recv_msg(self.client_socks[client_ip], 'MSG_TEST_NETWORK')
-        msg = ['MSG_TEST_NETWORK', self.uninet.cpu().state_dict()]
-        self.send_message(self.client_socks[client_ip], msg)
+        if config.COMM == 'TCP':
+            msg = self.recv_msg(self.client_socks[client_ip], 'MSG_TEST_NETWORK')
+            msg = ['MSG_TEST_NETWORK', self.uninet.cpu().state_dict()]
+            self.send_message(self.client_socks[client_ip], msg)
+        elif config.COMM == 'MQTT':
+            connections = 0
+            while connections != config.K:
+                self.q.get()
+                connections += 1
+            msg = ['MSG_TEST_NETWORK', self.uninet.cpu().state_dict()]
+            self.send_msg(msg)
 
     def _thread_training_no_offloading(self, client_ip):
         pass
@@ -158,7 +204,12 @@ class Sever(Communicator):
     def aggregate(self, client_ips):
         w_local_list = []
         for i in range(len(client_ips)):
-            msg = self.recv_msg(self.client_socks[client_ips[i]], 'MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER')
+            if config.COMM == 'TCP':
+                msg = self.recv_msg(self.client_socks[client_ips[i]], 'MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER')
+            elif config.COMM == 'MQTT':
+                msg = None
+                while msg is None:
+                    msg = self.q.get()
             if config.split_layer[i] != (config.model_len - 1):
                 w_local = (
                 utils.concat_weights(self.uninet.state_dict(), msg[1], self.nets[client_ips[i]].state_dict()),
