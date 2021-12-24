@@ -1,1 +1,1 @@
-python3 FedAdapt_serverrun.py --offload False --communicator TCP
+python3 FedAdapt_serverrun.py --offload False --communicator $1
