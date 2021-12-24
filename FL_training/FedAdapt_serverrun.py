@@ -79,7 +79,7 @@ for r in range(config.R):
 
 	sever.reinitialize(split_layers, offload, first, LR)
 	logger.info('==> Reinitialization Finish')
-comm_time = sever.finish(config.CLIENTS_LIST)
+comm_time = sever.finish()
 res['communication_time'].append(comm_time)
 with open('../results/FedAdapt_res.pkl', 'wb') as f:
 	pickle.dump(res, f)

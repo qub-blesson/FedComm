@@ -125,3 +125,4 @@ for r in range(config.R):
 	e_time_rebuild = time.time()
 	logger.info('Rebuild time: ' + str(e_time_rebuild - s_time_rebuild))
 	logger.info('==> Reinitialization Finish')
+client.finish()
