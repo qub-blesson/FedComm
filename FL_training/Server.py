@@ -95,12 +95,11 @@ class Server(Communicator):
 
     def train(self, thread_number, client_ips):
         # Network test
-        self._thread_network_testing()
+        if config.COMM == 'MQTT':
+            self._thread_network_testing(None)
 
         self.net_threads = {}
         self.bandwidth = {}
-
-        logger.info(config.COMM)
 
         if config.COMM == 'TCP':
             for i in range(len(client_ips)):
