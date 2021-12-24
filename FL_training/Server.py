@@ -347,6 +347,15 @@ class Server(Communicator):
 
     def finish(self, client_ips):
         msg = []
-        for i in range(len(client_ips)):
-            msg.append(self.recv_msg(self.client_socks[client_ips[i]], 'MSG_COMMUNICATION_TIME')[1])
+        if config.COMM == 'TCP':
+            for i in range(len(client_ips)):
+                msg.append(self.recv_msg(self.client_socks[client_ips[i]], 'MSG_COMMUNICATION_TIME')[1])
+        elif config.COMM == 'MQTT':
+            connections = 0
+            while connections != config.K:
+                msg = self.q.get()
+                while msg[0] != 'MSG_COMMUNICATION_TIME':
+                    self.q.put(msg)
+                    msg.append(self.q.get())
+                connections += 1
         return max(msg)
