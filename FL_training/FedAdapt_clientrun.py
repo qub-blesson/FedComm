@@ -17,7 +17,10 @@ import utils
 
 parser=argparse.ArgumentParser()
 parser.add_argument('--offload', help='FedAdapt or classic FL mode', type= utils.str2bool, default= False)
+parser.add_argument('--communicator', help='Communication protocol', default='TCP')
 args=parser.parse_args()
+
+config.COMM = args.communicator
 
 ip_address = config.HOST2IP[socket.gethostname()]
 index = config.CLIENTS_CONFIG[ip_address]

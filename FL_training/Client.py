@@ -12,113 +12,138 @@ import utils
 from Communicator import *
 
 import logging
-logging.basicConfig(level = logging.INFO,format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 np.random.seed(0)
 torch.manual_seed(0)
 
+
 class Client(Communicator):
-	def __init__(self, index, ip_address, server_addr, server_port, datalen, model_name, split_layer):
-		super(Client, self).__init__(index, ip_address)
-		self.datalen = datalen
-		self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-		self.model_name = model_name
-		self.uninet = utils.get_model('Unit', self.model_name, config.model_len-1, self.device, config.model_cfg)
+    def __init__(self, index, ip_address, server_addr, server_port, datalen, model_name, split_layer):
+        super(Client, self).__init__(index, ip_address, server_addr, server_port, sub_topic='fedserver',
+                                     pub_topic='fedadapt', client_num=config.K)
+        self.datalen = datalen
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        self.model_name = model_name
+        self.uninet = utils.get_model('Unit', self.model_name, config.model_len - 1, self.device, config.model_cfg)
 
-		logger.info('Connecting to Server.')
-		self.sock.connect((server_addr,server_port))
+        if config.COMM == 'TCP':
+            logger.info('Connecting to Server.')
+            self.sock.connect((server_addr, server_port))
 
-	def initialize(self, split_layer, offload, first, LR):
-		if offload or first:
-			self.split_layer = split_layer
+    def initialize(self, split_layer, offload, first, LR):
+        if offload or first:
+            self.split_layer = split_layer
 
-			logger.debug('Building Model.')
-			self.net = utils.get_model('Client', self.model_name, self.split_layer, self.device, config.model_cfg)
-			logger.debug(self.net)
-			self.criterion = nn.CrossEntropyLoss()
+            logger.debug('Building Model.')
+            self.net = utils.get_model('Client', self.model_name, self.split_layer, self.device, config.model_cfg)
+            logger.debug(self.net)
+            self.criterion = nn.CrossEntropyLoss()
 
-		self.optimizer = optim.SGD(self.net.parameters(), lr=LR,
-					  momentum=0.9)
-		logger.debug('Receiving Global Weights..')
-		weights = self.recv_msg(self.sock)[1]
-		if self.split_layer == (config.model_len -1):
-			self.net.load_state_dict(weights)
-		else:
-			pweights = utils.split_weights_client(weights,self.net.state_dict())
-			self.net.load_state_dict(pweights)
-		logger.debug('Initialize Finished')
+        self.optimizer = optim.SGD(self.net.parameters(), lr=LR,
+                                   momentum=0.9)
+        logger.debug('Receiving Global Weights..')
+        weights = None
+        if config.COMM == 'TCP':
+            weights = self.recv_msg(self.sock)[1]
+        elif config.COMM == 'MQTT':
+            weights = self.q.get()[1]
+        if self.split_layer == (config.model_len - 1):
+            self.net.load_state_dict(weights)
+        else:
+            pweights = utils.split_weights_client(weights, self.net.state_dict())
+            self.net.load_state_dict(pweights)
+        logger.debug('Initialize Finished')
 
-	def train(self, trainloader):
-		# Network speed test
-		network_time_start = time.time()
-		msg = ['MSG_TEST_NETWORK', self.uninet.cpu().state_dict()]
-		start = time.time()
-		self.send_message(self.sock, msg)
-		config.comm_time += (time.time() - start)
-		msg = self.recv_msg(self.sock,'MSG_TEST_NETWORK')[1]
-		network_time_end = time.time()
-		network_speed = (2 * config.model_size * 8) / (network_time_end - network_time_start) #Mbit/s 
+    def train(self, trainloader):
+        # Network speed test
+        network_time_start = time.time()
+        msg = ['MSG_TEST_NETWORK', self.uninet.cpu().state_dict()]
+        start = time.time()
+        if config.COMM == 'TCP':
+            self.send_message(self.sock, msg)
+        elif config.COMM == 'MQTT':
+            self.send_msg(msg)
+        config.comm_time += (time.time() - start)
 
-		logger.info('Network speed is {:}'.format(network_speed))
-		msg = ['MSG_TEST_NETWORK', self.ip, network_speed]
-		start = time.time()
-		self.send_message(self.sock, msg)
-		config.comm_time += (time.time() - start)
+        if config.COMM == 'TCP':
+            msg = self.recv_msg(self.sock, 'MSG_TEST_NETWORK')[1]
+        elif config.COMM == 'MQTT':
+            msg = self.q.get()[1]
+        network_time_end = time.time()
+        network_speed = (2 * config.model_size * 8) / (network_time_end - network_time_start)  # Mbit/s
 
-		# Training start
-		s_time_total = time.time()
-		time_training_c = 0
-		self.net.to(self.device)
-		self.net.train()
-		if self.split_layer == (config.model_len -1): # No offloading training
-			for batch_idx, (inputs, targets) in enumerate(tqdm.tqdm(trainloader)):
-				inputs, targets = inputs.to(self.device), targets.to(self.device)
-				self.optimizer.zero_grad()
-				outputs = self.net(inputs)
-				loss = self.criterion(outputs, targets)
-				loss.backward()
-				self.optimizer.step()
-			
-		else: # Offloading training
-			for batch_idx, (inputs, targets) in enumerate(tqdm.tqdm(trainloader)):
-				inputs, targets = inputs.to(self.device), targets.to(self.device)
-				self.optimizer.zero_grad()
-				outputs = self.net(inputs)
+        logger.info('Network speed is {:}'.format(network_speed))
+        msg = ['MSG_TEST_NETWORK', self.ip, network_speed]
+        start = time.time()
+        if config.COMM == 'TCP':
+            self.send_message(self.sock, msg)
+        elif config.COMM == 'MQTT':
+            self.send_msg(msg)
+        config.comm_time += (time.time() - start)
 
-				msg = ['MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER', outputs.cpu(), targets.cpu()]
-				self.send_message(self.sock, msg)
+        # Training start
+        s_time_total = time.time()
+        time_training_c = 0
+        self.net.to(self.device)
+        self.net.train()
+        if self.split_layer == (config.model_len - 1):  # No offloading training
+            for batch_idx, (inputs, targets) in enumerate(tqdm.tqdm(trainloader)):
+                inputs, targets = inputs.to(self.device), targets.to(self.device)
+                self.optimizer.zero_grad()
+                outputs = self.net(inputs)
+                loss = self.criterion(outputs, targets)
+                loss.backward()
+                self.optimizer.step()
 
-				# Wait receiving server gradients
-				gradients = self.recv_msg(self.sock)[1].to(self.device)
+        else:  # Offloading training
+            for batch_idx, (inputs, targets) in enumerate(tqdm.tqdm(trainloader)):
+                inputs, targets = inputs.to(self.device), targets.to(self.device)
+                self.optimizer.zero_grad()
+                outputs = self.net(inputs)
 
-				outputs.backward(gradients)
-				self.optimizer.step()
+                msg = ['MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER', outputs.cpu(), targets.cpu()]
+                self.send_message(self.sock, msg)
 
-		e_time_total = time.time()
-		logger.info('Total time: ' + str(e_time_total - s_time_total))
+                # Wait receiving server gradients
+                gradients = self.recv_msg(self.sock)[1].to(self.device)
 
-		training_time_pr = (e_time_total - s_time_total) / int((config.N / (config.K * config.B)))
-		logger.info('training_time_per_iteration: ' + str(training_time_pr))
+                outputs.backward(gradients)
+                self.optimizer.step()
 
-		msg = ['MSG_TRAINING_TIME_PER_ITERATION', self.ip, training_time_pr]
-		start = time.time()
-		self.send_message(self.sock, msg)
-		config.comm_time += (time.time() - start)
+        e_time_total = time.time()
+        logger.info('Total time: ' + str(e_time_total - s_time_total))
 
-		return e_time_total - s_time_total
-		
-	def upload(self):
-		msg = ['MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER', self.net.cpu().state_dict()]
-		start = time.time()
-		self.send_message(self.sock, msg)
-		config.comm_time += (time.time() - start)
+        training_time_pr = (e_time_total - s_time_total) / int((config.N / (config.K * config.B)))
+        logger.info('training_time_per_iteration: ' + str(training_time_pr))
 
-	def reinitialize(self, split_layers, offload, first, LR):
-		self.initialize(split_layers, offload, first, LR)
+        msg = ['MSG_TRAINING_TIME_PER_ITERATION', self.ip, training_time_pr]
+        start = time.time()
+        if config.COMM == 'TCP':
+            self.send_message(self.sock, msg)
+        elif config.COMM == 'MQTT':
+            self.send_msg(msg)
+        config.comm_time += (time.time() - start)
 
-	def finish(self):
-		msg = ['MSG_COMMUNICATION_TIME', config.comm_time]
-		self.send_message(self.sock, msg)
+        return e_time_total - s_time_total
 
+    def upload(self):
+        msg = ['MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER', self.net.cpu().state_dict()]
+        start = time.time()
+        if config.COMM == 'TCP':
+            self.send_message(self.sock, msg)
+        elif config.COMM == 'MQTT':
+            self.send_msg(msg)
+        config.comm_time += (time.time() - start)
 
+    def reinitialize(self, split_layers, offload, first, LR):
+        self.initialize(split_layers, offload, first, LR)
+
+    def finish(self):
+        msg = ['MSG_COMMUNICATION_TIME', config.comm_time]
+        if config.COMM == 'TCP':
+            self.send_message(self.sock, msg)
+        elif config.COMM == 'MQTT':
+            self.send_msg(msg)
