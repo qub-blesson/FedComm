@@ -147,3 +147,5 @@ class Client(Communicator):
             self.send_message(self.sock, msg)
         elif config.COMM == 'MQTT':
             self.send_msg(msg)
+            if self.q.get() == 'DONE':
+                pass
