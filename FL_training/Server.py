@@ -283,9 +283,8 @@ class Server(Communicator):
 		msg = []
 		connections = 0
 		while connections != config.K:
-			msg = self.q.get()
-			while msg[0] != 'MSG_COMMUNICATION_TIME':
-				self.q.put(msg)
-				msg.append(self.q.get())
+			msg.append(self.q.get()[1])
 			connections += 1
+
+		self.send_msg(['DONE'])
 		return max(msg)

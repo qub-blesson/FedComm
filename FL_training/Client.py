@@ -123,3 +123,5 @@ class Client(Communicator):
 	def finish(self):
 		msg = ['MSG_COMMUNICATION_TIME', config.comm_time]
 		self.send_msg(msg)
+		if self.q.get() == "DONE":
+			pass
