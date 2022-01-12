@@ -150,3 +150,5 @@ class Client(Communicator):
             self.snd_msg_tcp(self.sock, msg)
         elif config.COMM == 'MQTT' or config.COMM == 'AMQP':
             self.send_msg(msg)
+            if self.q.get() == 'DONE':
+                pass
