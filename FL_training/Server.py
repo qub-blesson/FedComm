@@ -44,7 +44,7 @@ class Server(Communicator):
                 logger.info('Got connection from ' + str(ip))
                 logger.info(client_sock)
                 self.client_socks[str(ip)] = client_sock
-        elif config.COMM == 'MQTT':
+        elif config.COMM == 'MQTT' or config.COMM == 'AMQP':
             connections = 0
             while connections < config.K:
                 connections += int(self.q.get())
@@ -89,13 +89,13 @@ class Server(Communicator):
         msg = ['MSG_INITIAL_GLOBAL_WEIGHTS_SERVER_TO_CLIENT', self.uninet.state_dict()]
         if config.COMM == 'TCP':
             for i in self.client_socks:
-                self.send_message(self.client_socks[i], msg)
-        elif config.COMM == 'MQTT':
+                self.snd_msg_tcp(self.client_socks[i], msg)
+        elif config.COMM == 'MQTT' or config.COMM == 'AMQP':
             self.send_msg(msg)
 
     def train(self, thread_number, client_ips):
         # Network test
-        if config.COMM == 'MQTT':
+        if config.COMM == 'MQTT' or config.COMM == 'AMQP':
             self._thread_network_testing(None)
 
         self.net_threads = {}
@@ -113,7 +113,7 @@ class Server(Communicator):
             for s in self.client_socks:
                 msg = self.recv_msg(self.client_socks[s], 'MSG_TEST_NETWORK')
                 self.bandwidth[msg[1]] = msg[2]
-        elif config.COMM == 'MQTT':
+        elif config.COMM == 'MQTT' or config.COMM == 'AMQP':
             connections = 0
             while connections != config.K:
                 msg = self.q.get()
@@ -139,7 +139,7 @@ class Server(Communicator):
 
             for i in range(len(client_ips)):
                 self.threads[client_ips[i]].join()
-        elif config.COMM == 'MQTT':
+        elif config.COMM == 'MQTT' or config.COMM == 'AMQP':
             for i in range(len(client_ips)):
                 if config.split_layer[i] == (config.model_len - 1):
                     logger.info(str(client_ips[i]) + ' no offloading training start')
@@ -151,7 +151,7 @@ class Server(Communicator):
             for s in self.client_socks:
                 msg = self.recv_msg(self.client_socks[s], 'MSG_TRAINING_TIME_PER_ITERATION')
                 self.ttpi[msg[1]] = msg[2]
-        elif config.COMM == 'MQTT':
+        elif config.COMM == 'MQTT' or config.COMM == 'AMQP':
             connections = 0
             while connections != config.K:
                 msg = self.q.get()
@@ -171,8 +171,8 @@ class Server(Communicator):
         if config.COMM == 'TCP':
             msg = self.recv_msg(self.client_socks[client_ip], 'MSG_TEST_NETWORK')
             msg = ['MSG_TEST_NETWORK', self.uninet.cpu().state_dict()]
-            self.send_message(self.client_socks[client_ip], msg)
-        elif config.COMM == 'MQTT':
+            self.snd_msg_tcp(self.client_socks[client_ip], msg)
+        elif config.COMM == 'MQTT' or config.COMM == 'AMQP':
             connections = 0
             while connections != config.K:
                 self.q.get()
@@ -199,7 +199,7 @@ class Server(Communicator):
 
             # Send gradients to client
             msg = ['MSG_SERVER_GRADIENTS_SERVER_TO_CLIENT_' + str(client_ip), inputs.grad]
-            self.send_message(self.client_socks[client_ip], msg)
+            self.snd_msg_tcp(self.client_socks[client_ip], msg)
 
         logger.info(str(client_ip) + ' offloading training end')
         return 'Finish'
@@ -209,7 +209,7 @@ class Server(Communicator):
         for i in range(len(client_ips)):
             if config.COMM == 'TCP':
                 msg = self.recv_msg(self.client_socks[client_ips[i]], 'MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER')
-            elif config.COMM == 'MQTT':
+            elif config.COMM == 'MQTT' or config.COMM == 'AMQP':
                 msg = None
                 while msg is None:
                     msg = self.q.get()
@@ -343,14 +343,14 @@ class Server(Communicator):
 
     def scatter(self, msg):
         for i in self.client_socks:
-            self.send_message(self.client_socks[i], msg)
+            self.snd_msg_tcp(self.client_socks[i], msg)
 
     def finish(self, client_ips):
         msg = []
         if config.COMM == 'TCP':
             for i in range(len(client_ips)):
                 msg.append(self.recv_msg(self.client_socks[client_ips[i]], 'MSG_COMMUNICATION_TIME')[1])
-        elif config.COMM == 'MQTT':
+        elif config.COMM == 'MQTT' or config.COMM == 'AMQP':
             connections = 0
             while connections != config.K:
                 msg.append(self.q.get()[1])

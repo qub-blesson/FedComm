@@ -32,6 +32,8 @@ class Client(Communicator):
         if config.COMM == 'TCP':
             logger.info('Connecting to Server.')
             self.sock.connect((server_addr, server_port))
+        elif config.COMM == 'AMQP':
+            self.send_msg("1")
 
     def initialize(self, split_layer, offload, first, LR):
         if offload or first:
@@ -48,8 +50,9 @@ class Client(Communicator):
         weights = None
         if config.COMM == 'TCP':
             weights = self.recv_msg(self.sock)[1]
-        elif config.COMM == 'MQTT':
+        elif config.COMM == 'MQTT' or config.COMM == 'AMQP':
             weights = self.q.get()[1]
+
         if self.split_layer == (config.model_len - 1):
             self.net.load_state_dict(weights)
         else:
@@ -63,14 +66,14 @@ class Client(Communicator):
         msg = ['MSG_TEST_NETWORK', self.uninet.cpu().state_dict()]
         start = time.time()
         if config.COMM == 'TCP':
-            self.send_message(self.sock, msg)
-        elif config.COMM == 'MQTT':
+            self.snd_msg_tcp(self.sock, msg)
+        elif config.COMM == 'MQTT' or config.COMM == 'AMQP':
             self.send_msg(msg)
         config.comm_time += (time.time() - start)
 
         if config.COMM == 'TCP':
             msg = self.recv_msg(self.sock, 'MSG_TEST_NETWORK')[1]
-        elif config.COMM == 'MQTT':
+        elif config.COMM == 'MQTT' or config.COMM == 'AMQP':
             msg = self.q.get()[1]
         network_time_end = time.time()
         network_speed = (2 * config.model_size * 8) / (network_time_end - network_time_start)  # Mbit/s
@@ -79,8 +82,8 @@ class Client(Communicator):
         msg = ['MSG_TEST_NETWORK', self.ip, network_speed]
         start = time.time()
         if config.COMM == 'TCP':
-            self.send_message(self.sock, msg)
-        elif config.COMM == 'MQTT':
+            self.snd_msg_tcp(self.sock, msg)
+        elif config.COMM == 'MQTT' or config.COMM == 'AMQP':
             self.send_msg(msg)
         config.comm_time += (time.time() - start)
 
@@ -105,7 +108,7 @@ class Client(Communicator):
                 outputs = self.net(inputs)
 
                 msg = ['MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER', outputs.cpu(), targets.cpu()]
-                self.send_message(self.sock, msg)
+                self.snd_msg_tcp(self.sock, msg)
 
                 # Wait receiving server gradients
                 gradients = self.recv_msg(self.sock)[1].to(self.device)
@@ -122,8 +125,8 @@ class Client(Communicator):
         msg = ['MSG_TRAINING_TIME_PER_ITERATION', self.ip, training_time_pr]
         start = time.time()
         if config.COMM == 'TCP':
-            self.send_message(self.sock, msg)
-        elif config.COMM == 'MQTT':
+            self.snd_msg_tcp(self.sock, msg)
+        elif config.COMM == 'MQTT' or config.COMM == 'AMQP':
             self.send_msg(msg)
         config.comm_time += (time.time() - start)
 
@@ -133,8 +136,8 @@ class Client(Communicator):
         msg = ['MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER', self.net.cpu().state_dict()]
         start = time.time()
         if config.COMM == 'TCP':
-            self.send_message(self.sock, msg)
-        elif config.COMM == 'MQTT':
+            self.snd_msg_tcp(self.sock, msg)
+        elif config.COMM == 'MQTT' or config.COMM == 'AMQP':
             self.send_msg(msg)
         config.comm_time += (time.time() - start)
 
@@ -144,8 +147,6 @@ class Client(Communicator):
     def finish(self):
         msg = ['MSG_COMMUNICATION_TIME', config.comm_time]
         if config.COMM == 'TCP':
-            self.send_message(self.sock, msg)
-        elif config.COMM == 'MQTT':
+            self.snd_msg_tcp(self.sock, msg)
+        elif config.COMM == 'MQTT' or config.COMM == 'AMQP':
             self.send_msg(msg)
-            if self.q.get() == 'DONE':
-                pass

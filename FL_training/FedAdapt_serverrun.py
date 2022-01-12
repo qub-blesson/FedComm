@@ -31,7 +31,7 @@ logger.info('Preparing Sever.')
 
 if communicator == 'TCP':
     server = Server(0, config.SERVER_ADDR, config.SERVER_PORT, 'VGG8')
-elif communicator == 'MQTT':
+elif communicator == 'MQTT' or communicator == 'AMQP':
     server = Server(config.K, config.SERVER_ADDR, config.SERVER_PORT, 'VGG8')
 server.initialize(config.split_layer, offload, first, LR)
 first = False
