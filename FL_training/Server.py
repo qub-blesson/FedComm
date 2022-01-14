@@ -36,9 +36,10 @@ class Server(Communicator):
         self.sock.bind((self.ip, self.port))
         self.client_socks = {}
         while len(self.client_socks) < config.K:
-            (ip, port) = self.sock.recvfrom(1024)
-            logger.info('Got connection from ' + str(ip))
-            self.client_socks[str(ip)] = (ip, port)
+            msg = self.recv_msg_udp(self.sock)
+            logger.info(msg)
+            logger.info('Got connection from ' + str(msg[0]))
+            self.client_socks[str(msg[0])] = (msg[0], msg[1])
 
         self.uninet = utils.get_model('Unit', self.model_name, config.model_len - 1, self.device, config.model_cfg)
 
