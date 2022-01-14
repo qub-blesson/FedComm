@@ -36,12 +36,9 @@ class Server(Communicator):
         self.sock.bind((self.ip, self.port))
         self.client_socks = {}
         while len(self.client_socks) < config.K:
-            self.sock.listen(5)
-            logger.info("Waiting Incoming Connections.")
-            (client_sock, (ip, port)) = self.sock.accept()
+            (ip, port) = self.sock.recvfrom(1024)
             logger.info('Got connection from ' + str(ip))
-            logger.info(client_sock)
-            self.client_socks[str(ip)] = client_sock
+            self.client_socks[str(ip)] = (ip, port)
 
         self.uninet = utils.get_model('Unit', self.model_name, config.model_len - 1, self.device, config.model_cfg)
 
@@ -80,7 +77,7 @@ class Server(Communicator):
 
         msg = ['MSG_INITIAL_GLOBAL_WEIGHTS_SERVER_TO_CLIENT', self.uninet.state_dict()]
         for i in self.client_socks:
-            self.snd_msg_tcp(self.client_socks[i], msg)
+            self.send_msg_udp(self.sock, self.client_socks[i], msg)
 
     def train(self, thread_number, client_ips):
         # Network test
@@ -96,7 +93,7 @@ class Server(Communicator):
             self.net_threads[client_ips[i]].join()
 
         for s in self.client_socks:
-            msg = self.recv_msg(self.client_socks[s], 'MSG_TEST_NETWORK')
+            msg = self.recv_msg_udp(self.sock, 'MSG_TEST_NETWORK')
             self.bandwidth[msg[1]] = msg[2]
 
         # Training start
@@ -120,7 +117,7 @@ class Server(Communicator):
 
         self.ttpi = {}  # Training time per iteration
         for s in self.client_socks:
-            msg = self.recv_msg(self.client_socks[s], 'MSG_TRAINING_TIME_PER_ITERATION')
+            msg = self.recv_msg_udp(self.sock, 'MSG_TRAINING_TIME_PER_ITERATION')
             self.ttpi[msg[1]] = msg[2]
 
         self.group_labels = self.clustering(self.ttpi, self.bandwidth)
@@ -130,9 +127,9 @@ class Server(Communicator):
         return state, self.bandwidth
 
     def _thread_network_testing(self, client_ip):
-        msg = self.recv_msg(self.client_socks[client_ip], 'MSG_TEST_NETWORK')
+        msg = self.recv_msg_udp(self.sock, 'MSG_TEST_NETWORK')
         msg = ['MSG_TEST_NETWORK', self.uninet.cpu().state_dict()]
-        self.snd_msg_tcp(self.client_socks[client_ip], msg)
+        self.send_msg_udp(self.sock, self.client_socks[client_ip], msg)
 
     def _thread_training_no_offloading(self, client_ip):
         pass
@@ -140,7 +137,7 @@ class Server(Communicator):
     def _thread_training_offloading(self, client_ip):
         iteration = int((config.N / (config.K * config.B)))
         for i in range(iteration):
-            msg = self.recv_msg(self.client_socks[client_ip], 'MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER')
+            msg = self.recv_msg_udp(self.sock, 'MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER')
             smashed_layers = msg[1]
             labels = msg[2]
 
@@ -153,7 +150,7 @@ class Server(Communicator):
 
             # Send gradients to client
             msg = ['MSG_SERVER_GRADIENTS_SERVER_TO_CLIENT_' + str(client_ip), inputs.grad]
-            self.snd_msg_tcp(self.client_socks[client_ip], msg)
+            self.send_msg_udp(self.sock, self.client_socks[client_ip], msg)
 
         logger.info(str(client_ip) + ' offloading training end')
         return 'Finish'
@@ -161,7 +158,7 @@ class Server(Communicator):
     def aggregate(self, client_ips):
         w_local_list = []
         for i in range(len(client_ips)):
-            msg = self.recv_msg(self.client_socks[client_ips[i]], 'MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER')
+            msg = self.recv_msg_udp(self.sock, 'MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER')
             if config.split_layer[i] != (config.model_len - 1):
                 w_local = (
                     utils.concat_weights(self.uninet.state_dict(), msg[1], self.nets[client_ips[i]].state_dict()),
@@ -292,10 +289,10 @@ class Server(Communicator):
 
     def scatter(self, msg):
         for i in self.client_socks:
-            self.snd_msg_tcp(self.client_socks[i], msg)
+            self.send_msg_udp(self.sock, self.client_socks[i], msg)
 
     def finish(self, client_ips):
         msg = []
         for i in range(len(client_ips)):
-            msg.append(self.recv_msg(self.client_socks[client_ips[i]], 'MSG_COMMUNICATION_TIME')[1])
+            msg.append(self.recv_msg_udp(self.sock, 'MSG_COMMUNICATION_TIME')[1])
         return max(msg)
