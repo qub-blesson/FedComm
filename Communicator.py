@@ -29,7 +29,7 @@ class Communicator(object):
     # UDP Functionality
     def send_msg_udp(self, sock, address, msg):
         msg_pickle = pickle.dumps(msg)
-        sys.getsizeof(msg_pickle)
+        logger.info(sys.getsizeof(msg_pickle))
         sock.sendto(msg_pickle, address)
         #logger.debug(msg[0] + 'sent to' + str(sock.getpeername()[0]) + ':' + str(sock.getpeername()[1]))
 
