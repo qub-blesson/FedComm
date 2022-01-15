@@ -66,7 +66,8 @@ for r in range(config.R):
     trianing_time = e_time - s_time
     res['trianing_time'].append(trianing_time)
     res['bandwidth_record'].append(bandwidth)
-
+    comp_time = (state[0] + state[1] + state[2] + state[3]) / 4
+    res['communication_time'].append(trianing_time - comp_time)
     test_acc = server.test(r)
     res['test_acc_record'].append(test_acc)
 
@@ -74,7 +75,8 @@ for r in range(config.R):
         pickle.dump(res, f)
 
     logger.info('Round Finish')
-    logger.info('==> Round Training Time: {:}'.format(trianing_time))
+    logger.info('==> Round Training Computation Time: {:}'.format(comp_time))
+    logger.info('==> Round Training Communication Time: {:}'.format(trianing_time - comp_time))
 
     logger.info('==> Reinitialization for Round : {:}'.format(r + 1))
     if offload:
@@ -88,6 +90,6 @@ for r in range(config.R):
     server.reinitialize(split_layers, offload, first, LR)
     logger.info('==> Reinitialization Finish')
 comm_time = server.finish(config.CLIENTS_LIST)
-res['communication_time'].append(comm_time)
-with open('../results/FedAdapt_res.pkl', 'wb') as f:
-    pickle.dump(res, f)
+# res['communication_time'].append(comm_time)
+# with open('../results/FedAdapt_res.pkl', 'wb') as f:
+    # pickle.dump(res, f)
