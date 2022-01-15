@@ -119,10 +119,10 @@ class Client(Communicator):
         e_time_total = time.time()
         logger.info('Total time: ' + str(e_time_total - s_time_total))
 
-        training_time_pr = (e_time_total - s_time_total) / int((config.N / (config.K * config.B)))
-        logger.info('training_time_per_iteration: ' + str(training_time_pr))
+        #training_time_pr = (e_time_total - s_time_total) / int((config.N / (config.K * config.B)))
+        #logger.info('training_time_per_iteration: ' + str(training_time_pr))
 
-        msg = ['MSG_TRAINING_TIME_PER_ITERATION', self.ip, training_time_pr]
+        msg = ['MSG_TRAINING_TIME_PER_ITERATION', self.ip, e_time_total - s_time_total]
         start = time.time()
         if config.COMM == 'TCP':
             self.snd_msg_tcp(self.sock, msg)
