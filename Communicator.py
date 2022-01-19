@@ -32,7 +32,9 @@ class Communicator(object):
 
     # UDP Functionality
     def send_msg_udp(self, sock, address, msg):
-        messages = torch.split(self.chunk)
+        messages = msg
+        if type(msg) is dict:
+            messages = torch.split(msg, self.chunk)
 
         for message in messages:
             message = pickle.dumps(message)
