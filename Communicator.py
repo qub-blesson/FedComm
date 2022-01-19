@@ -30,20 +30,11 @@ class Communicator(object):
         self.chunk = 500
         self.sock = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 
-    def chunks(self, data):
-        it = iter(data)
-        for i in range(0, len(data), self.chunk):
-            yield {k: data[k] for k in islice(it, self.chunk)}
-
     # UDP Functionality
     def send_msg_udp(self, sock, address, msg):
-        buffer = []
-        if type(msg) is dict:
-            for item in self.chunks({i: i for i in range(10)}):
-                buffer.append(item)
+        messages = torch.split(self.chunk)
 
-        logger.info(len(msg))
-        for message in msg:
+        for message in messages:
             message = pickle.dumps(message)
             sock.sendto(message, address)
         sock.sendto(pickle.dumps("END"), address)
