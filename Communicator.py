@@ -32,9 +32,10 @@ class Communicator(object):
 
     # UDP Functionality
     def send_msg_udp(self, sock, address, msg):
-        it = iter(msg)
-        for i in range(0, len(msg), self.chunk):
-            yield {k: msg[k] for k in islice(it, self.chunk)}
+        if type(msg) is dict:
+            it = iter(msg)
+            for i in range(0, len(msg), self.chunk):
+                yield {k: msg[k] for k in islice(it, self.chunk)}
 
         logger.info(len(msg))
         for message in msg:
