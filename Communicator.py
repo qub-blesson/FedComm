@@ -31,8 +31,8 @@ class Communicator(object):
     # UDP Functionality
     def send_msg_udp(self, sock, address, msg):
         msg_pickle = pickle.dumps(msg)
-        #messages = [msg_pickle[i:i + self.chunk] for i in range(0, len(msg_pickle), self.chunk)]
-        messages = torch.split(self.chunk)
+        messages = [msg_pickle[i:i + self.chunk] for i in range(0, len(msg_pickle), self.chunk)]
+        #messages = msg_pickle.spl
         logger.info(sys.getsizeof(messages[0]))
         for message in messages:
             sock.sendto(message, address)
