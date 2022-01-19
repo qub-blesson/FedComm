@@ -32,7 +32,6 @@ class Communicator(object):
     def send_msg_udp(self, sock, address, msg):
         msg_pickle = pickle.dumps(msg)
         messages = [msg_pickle[i:i + self.chunk] for i in range(0, len(msg_pickle), self.chunk)]
-        #messages = msg_pickle.spl
         logger.info(sys.getsizeof(messages[0]))
         for message in messages:
             sock.sendto(message, address)
@@ -45,6 +44,8 @@ class Communicator(object):
             while read_next:
                 msg, ip = sock.recvfrom(65535)
                 msg = pickle.loads(msg)
+                if msg == "END":
+                    break
                 buffer.append(msg)
         except:
             socket.error
@@ -54,4 +55,4 @@ class Communicator(object):
                 return msg
             elif msg[0] != expect_msg_type:
                 raise Exception("Expected " + expect_msg_type + " but received " + msg[0])
-        return msg
+        return buffer
