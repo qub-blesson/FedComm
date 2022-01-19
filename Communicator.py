@@ -55,4 +55,5 @@ class Communicator(object):
                 return msg
             elif msg[0] != expect_msg_type:
                 raise Exception("Expected " + expect_msg_type + " but received " + msg[0])
+        logger.info(buffer)
         return buffer
