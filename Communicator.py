@@ -30,11 +30,9 @@ class Communicator(object):
 
     # UDP Functionality
     def send_msg_udp(self, sock, address, msg):
-        msg_pickle = pickle.dumps(msg)
-        messages = [msg_pickle[i:i + self.chunk] for i in range(0, len(msg_pickle), self.chunk)]
-        logger.info(sys.getsizeof(messages))
+        messages = [msg[i:i + self.chunk] for i in range(0, len(msg), self.chunk)]
         for message in messages:
-            logger.info(message)
+            message = pickle.dumps(message)
             sock.sendto(message, address)
         sock.sendto(pickle.dumps("END"), address)
 
@@ -43,7 +41,8 @@ class Communicator(object):
         read_next = True
         try:
             while read_next:
-                msg, ip = sock.recvfrom(65535)
+                msg, ip = sock.recvfrom(65536)
+                logger.info(msg)
                 msg = pickle.loads(msg)
                 if msg == "END":
                     break
