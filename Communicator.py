@@ -13,6 +13,8 @@ import threading
 from queue import Queue
 import paho.mqtt.client as mqtt
 
+from itertools import islice
+
 import config
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -30,8 +32,12 @@ class Communicator(object):
 
     # UDP Functionality
     def send_msg_udp(self, sock, address, msg):
-        messages = [msg[i:i + self.chunk] for i in range(0, len(msg), self.chunk)]
-        for message in messages:
+        it = iter(msg)
+        for i in range(0, len(msg), self.chunk):
+            yield {k: msg[k] for k in islice(it, self.chunk)}
+
+        logger.info(len(msg))
+        for message in msg:
             message = pickle.dumps(message)
             sock.sendto(message, address)
         sock.sendto(pickle.dumps("END"), address)
