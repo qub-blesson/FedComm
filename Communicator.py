@@ -6,6 +6,7 @@ import socket
 
 import logging
 import sys
+import torch
 
 import pika
 import threading
@@ -24,19 +25,29 @@ class Communicator(object):
         # all types
         self.ip = ip_address
         self.client = None
+        self.chunk = 500
         self.sock = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 
     # UDP Functionality
     def send_msg_udp(self, sock, address, msg):
         msg_pickle = pickle.dumps(msg)
-        logger.info(sys.getsizeof(msg_pickle))
-        sock.sendto(msg_pickle, address)
-        #logger.debug(msg[0] + 'sent to' + str(sock.getpeername()[0]) + ':' + str(sock.getpeername()[1]))
+        #messages = [msg_pickle[i:i + self.chunk] for i in range(0, len(msg_pickle), self.chunk)]
+        messages = torch.split(self.chunk)
+        logger.info(sys.getsizeof(messages[0]))
+        for message in messages:
+            sock.sendto(message, address)
+        sock.sendto(pickle.dumps("END"), address)
 
     def recv_msg_udp(self, sock, expect_msg_type=None):
-        (msg, ip) = sock.recvfrom(65535)
-        msg = pickle.loads(msg)
-        #logger.debug(msg[0] + 'received from' + str(sock.getpeername()[0]) + ':' + str(sock.getpeername()[1]))
+        buffer = []
+        read_next = True
+        try:
+            while read_next:
+                msg, ip = sock.recvfrom(65535)
+                msg = pickle.loads(msg)
+                buffer.append(msg)
+        except:
+            socket.error
 
         if expect_msg_type is not None:
             if msg[0] == 'Finish':
