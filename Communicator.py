@@ -45,7 +45,7 @@ class Communicator(object):
         msg = None
         try:
             while read_next:
-                msg, ip = sock.recvfrom(65536)
+                msg, ip = sock.recvfrom(4096)
                 if msg == b"END":
                     break
                 buffer.extend(msg)
@@ -67,10 +67,9 @@ class Communicator(object):
         ip = None
         try:
             while read_next:
-                (msg, ip) = sock.recvfrom(65536)
+                (msg, ip) = sock.recvfrom(4096)
                 if msg == b"END":
                     break
-                buffer.extend(msg)
         except Exception:
             pass
 
