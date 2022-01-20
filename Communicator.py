@@ -32,18 +32,16 @@ class Communicator(object):
 
     # UDP Functionality
     def send_msg_udp(self, sock, address, msg):
-        messages = msg
-        if type(msg) is dict:
-            messages = torch.split(msg, self.chunk)
+        messageSplit = pickle.dumps(msg)
 
-        for message in messages:
-            message = pickle.dumps(message)
-            sock.sendto(message, address)
+        for i in range(len(messageSplit)):
+            sock.sendto(messageSplit[i:i + 1], address)
         sock.sendto(pickle.dumps("END"), address)
 
     def recv_msg_udp(self, sock, expect_msg_type=None):
-        buffer = []
+        buffer = bytearray()
         read_next = True
+        msg = None
         try:
             while read_next:
                 msg, ip = sock.recvfrom(65536)
@@ -51,15 +49,14 @@ class Communicator(object):
                 msg = pickle.loads(msg)
                 if msg == "END":
                     break
-                buffer.append(msg)
-        except:
-            socket.error
+                buffer.extend(msg)
+        except Exception:
+
 
         if expect_msg_type is not None:
             if msg[0] == 'Finish':
                 return msg
             elif msg[0] != expect_msg_type:
                 raise Exception("Expected " + expect_msg_type + " but received " + msg[0])
-        logger.info(buffer)
 
         return buffer
