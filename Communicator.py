@@ -51,7 +51,7 @@ class Communicator(object):
                     break
                 buffer.extend(msg)
         except Exception:
-
+            pass
 
         if expect_msg_type is not None:
             if msg[0] == 'Finish':
