@@ -36,7 +36,7 @@ class Communicator(object):
 
         for i in range(len(messageSplit)):
             sock.sendto(messageSplit[i:i + 1], address)
-        sock.sendto(pickle.dumps("END"), address)
+        sock.sendto(b"END", address)
 
     def recv_msg_udp(self, sock, expect_msg_type=None):
         buffer = bytearray()
@@ -45,14 +45,13 @@ class Communicator(object):
         try:
             while read_next:
                 msg, ip = sock.recvfrom(65536)
-                logger.info(msg)
-                msg = pickle.loads(msg)
-                if msg == "END":
+                if msg == b"END":
                     break
                 buffer.extend(msg)
         except Exception:
             pass
 
+        buffer = pickle.loads(buffer)
         if expect_msg_type is not None:
             if msg[0] == 'Finish':
                 return msg
