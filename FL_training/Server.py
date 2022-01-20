@@ -36,7 +36,7 @@ class Server(Communicator):
         self.sock.bind((self.ip, self.port))
         self.client_socks = {}
         while len(self.client_socks) < config.K:
-            msg = self.recv_msg_udp(self.sock)
+            msg = self.init_recv_msg_udp(self.sock)
             logger.info('Got connection from ' + str(msg[0]))
             self.client_socks[str(msg[0])] = (msg[0], msg[1])
 

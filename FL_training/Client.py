@@ -28,7 +28,7 @@ class Client(Communicator):
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.model_name = model_name
         self.uninet = utils.get_model('Unit', self.model_name, config.model_len - 1, self.device, config.model_cfg)
-        self.send_msg_udp(self.sock, (server_addr, server_port), (ip_address, 1883))
+        self.send_msg_udp(self.sock, (server_addr, server_port), b'')
         self.server_addr = server_addr
         self.server_port = server_port
 
