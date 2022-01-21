@@ -36,7 +36,7 @@ class Communicator(object):
 
         for i in range(0, len(messageSplit), self.chunk):
             msg_pickle = messageSplit[i:i+self.chunk]
-            sock.sendto(struct.pack(">I", len(msg_pickle)))
+            sock.sendto(struct.pack(">I", len(msg_pickle)), address)
             sock.sendto(msg_pickle, address)
         sock.sendto(b"END", address)
 
