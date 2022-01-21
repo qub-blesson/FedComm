@@ -29,14 +29,15 @@ class Communicator(object):
         self.client = None
         self.chunk = 507
         self.sock = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
-        self.message_count = 0
 
     # UDP Functionality
     def send_msg_udp(self, sock, address, msg):
         messageSplit = pickle.dumps(msg)
 
         for i in range(0, len(messageSplit), self.chunk):
-            sock.sendto(messageSplit[i:i + self.chunk], address)
+            msg_pickle = messageSplit[i:i+self.chunk]
+            sock.sendto(struct.pack(">I", len(msg_pickle)))
+            sock.sendto(msg_pickle, address)
         sock.sendto(b"END", address)
 
     def recv_msg_udp(self, sock, expect_msg_type=None):
@@ -45,7 +46,8 @@ class Communicator(object):
         msg = None
         try:
             while read_next:
-                msg, ip = sock.recvfrom(4096)
+                (msg_len, ip) = struct.unpack(">I", sock.recv(4))[0]
+                msg, ip = sock.recvfrom(msg_len)
                 if msg == b"END":
                     break
                 buffer.extend(msg)
