@@ -46,8 +46,8 @@ class Communicator(object):
         msg = None
         try:
             while read_next:
-                (msg_len, ip) = struct.unpack(">I", sock.recv(4))[0]
-                msg, ip = sock.recvfrom(msg_len)
+                msg_len = struct.unpack(">I", sock.recv(100))[0]
+                msg = sock.recvfrom(msg_len)[0]
                 if msg == b"END":
                     break
                 buffer.extend(msg)
