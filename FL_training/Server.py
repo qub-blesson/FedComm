@@ -50,6 +50,7 @@ class Server(Communicator):
         self.testloader = torch.utils.data.DataLoader(self.testset, batch_size=100, shuffle=False, num_workers=4)
 
     def initialize(self, split_layers, offload, first, LR):
+        pweights = None
         if offload or first:
             self.split_layers = split_layers
             self.nets = {}
@@ -75,6 +76,7 @@ class Server(Communicator):
                                                            config.model_cfg)
             self.criterion = nn.CrossEntropyLoss()
 
+        logger.info(pweights)
         msg = ['MSG_INITIAL_GLOBAL_WEIGHTS_SERVER_TO_CLIENT', self.uninet.state_dict()]
         for i in self.client_socks:
             self.send_msg_udp(self.sock, self.client_socks[i], msg)

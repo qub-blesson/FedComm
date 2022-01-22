@@ -31,6 +31,10 @@ class Communicator(object):
         self.sock = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 
     # UDP Functionality
+    # TODO: Find a way to split up the weights (possibly using utils.py)
+    # TODO: See what way they get split up
+    # TODO: see if I need to split using torch.split(layer, self.chunk)
+    # TODO: Send to the client
     def send_msg_udp(self, sock, address, msg):
         messageSplit = pickle.dumps(msg)
 
