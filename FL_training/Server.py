@@ -76,7 +76,13 @@ class Server(Communicator):
                                                            config.model_cfg)
             self.criterion = nn.CrossEntropyLoss()
 
-        logger.info(pweights)
+        for i in range(len(split_layers)):
+            client_ip = config.CLIENTS_LIST[i]
+            cweights = utils.get_model('Client', self.model_name, split_layers[i], self.device,
+                                       config.model_cfg).state_dict()
+            pweights = utils.split_weights_server(self.uninet.state_dict(), cweights,
+                                                  self.nets[client_ip].state_dict())
+            logger.info(pweights)
         msg = ['MSG_INITIAL_GLOBAL_WEIGHTS_SERVER_TO_CLIENT', self.uninet.state_dict()]
         for i in self.client_socks:
             self.send_msg_udp(self.sock, self.client_socks[i], msg)
