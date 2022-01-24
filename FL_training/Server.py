@@ -50,7 +50,6 @@ class Server(Communicator):
         self.testloader = torch.utils.data.DataLoader(self.testset, batch_size=100, shuffle=False, num_workers=4)
 
     def initialize(self, split_layers, offload, first, LR):
-        pweights = None
         if offload or first:
             self.split_layers = split_layers
             self.nets = {}
@@ -76,13 +75,10 @@ class Server(Communicator):
                                                            config.model_cfg)
             self.criterion = nn.CrossEntropyLoss()
 
-        for i in range(len(split_layers)):
-            client_ip = config.CLIENTS_LIST[i]
-            cweights = utils.get_model('Client', self.model_name, split_layers[i], self.device,
-                                       config.model_cfg).state_dict()
-            pweights = utils.split_weights_server(self.uninet.state_dict(), cweights,
-                                                  self.nets[client_ip].state_dict())
-            logger.info(pweights)
+        cweights = utils.get_model('Client', self.model_name, split_layers[0], self.device,
+                                   config.model_cfg).state_dict()
+        pweights = utils.split_weights_client(self.uninet.state_dict(), cweights)
+        logger.info(pweights)
         msg = ['MSG_INITIAL_GLOBAL_WEIGHTS_SERVER_TO_CLIENT', self.uninet.state_dict()]
         for i in self.client_socks:
             self.send_msg_udp(self.sock, self.client_socks[i], msg)
@@ -110,13 +106,13 @@ class Server(Communicator):
         for i in range(len(client_ips)):
             if config.split_layer[i] == (config.model_len - 1):
                 self.threads[client_ips[i]] = threading.Thread(target=self._thread_training_no_offloading,
-                                                                args=(client_ips[i],))
+                                                               args=(client_ips[i],))
                 logger.info(str(client_ips[i]) + ' no offloading training start')
                 self.threads[client_ips[i]].start()
             else:
                 logger.info(str(client_ips[i]))
                 self.threads[client_ips[i]] = threading.Thread(target=self._thread_training_offloading,
-                                                                args=(client_ips[i],))
+                                                               args=(client_ips[i],))
                 logger.info(str(client_ips[i]) + ' offloading training start')
                 self.threads[client_ips[i]].start()
 
