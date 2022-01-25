@@ -31,17 +31,23 @@ class Communicator(object):
         self.sock = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 
     # UDP Functionality
-    # TODO: Find a way to split up the weights (possibly using utils.py)
+    # TODO: Find a way to split up the weights (possibly using utils.py) or make my own (use for loop to split tensors)
     # TODO: See what way they get split up
     # TODO: see if I need to split using torch.split(layer, self.chunk)
     # TODO: Send to the client
     def send_msg_udp(self, sock, address, msg):
-        messageSplit = pickle.dumps(msg)
-
-        for i in range(0, len(messageSplit), self.chunk):
-            msg_pickle = messageSplit[i:i+self.chunk]
-            sock.sendto(struct.pack(">I", len(msg_pickle)), address)
-            sock.sendto(msg_pickle, address)
+        if msg[0] == 'MSG_INITIAL_GLOBAL_WEIGHTS_SERVER_TO_CLIENT':
+            for key in msg[1]:
+                if len(msg[1][key].size()) > 0:
+                    msg_split = None
+                    msg_split = msg[1][key].split(self.chunk)
+                else:
+                    msg_split = []
+                    msg_split.append(msg[1][key])
+                for message in msg_split:
+                    msg_pickle = pickle.dumps(message)
+                    sock.sendto(struct.pack(">I", len(msg_pickle)), address)
+                    sock.sendto(msg_pickle, address)
         sock.sendto(b"END", address)
 
     def recv_msg_udp(self, sock, expect_msg_type=None):
