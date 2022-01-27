@@ -92,20 +92,24 @@ def split_weights_server(weights,cweights,sweights):
 
 	return sweights
 
-def concat_weights(weights,cweights,sweights):
+def concat_weights(weights, sweights):
 	concat_dict = collections.OrderedDict()
 
-	ckeys = list(cweights)
-	skeys = list(sweights)
-	keys = list(weights)
+	for weight in sweights:
+		concat_dict[weight] = ''
 
-	for i in range(len(ckeys)):
-		concat_dict[keys[i]] = cweights[ckeys[i]]
+	for weight in weights:
+		concat_dict[weight[0]] += torch.from_numpy(weight[1])
 
-	for i in range(len(skeys)):
-		concat_dict[keys[i + len(ckeys)]] = sweights[skeys[i]]
+	for key in concat_dict:
+		if torch.cat(concat_dict[key]).size()[0] != sweights[key].size():
+			for i in range((sweights[key].size())-torch.cat(concat_dict[key])[0]):
+				concat_dict[key] += torch.from_numpy(np.zeros(1))
+		concat_dict[key] = torch.cat(concat_dict[key])
+		concat_dict[key].reshape(concat_dict[key], sweights[key].size())
 
 	return concat_dict
+
 
 
 

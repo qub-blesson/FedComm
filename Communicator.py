@@ -31,24 +31,31 @@ class Communicator(object):
         self.sock = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 
     # UDP Functionality
-    # TODO: Find a way to split up the weights (possibly using utils.py) or make my own (use for loop to split tensors)
-    # TODO: See what way they get split up
-    # TODO: see if I need to split using torch.split(layer, self.chunk)
-    # TODO: Send to the client
+    # TODO: Check if sending works
     def send_msg_udp(self, sock, address, msg):
-        if msg[0] == 'MSG_INITIAL_GLOBAL_WEIGHTS_SERVER_TO_CLIENT':
-            for key in msg[1]:
-                if len(msg[1][key].size()) > 0:
-                    msg_split = None
-                    msg_split = msg[1][key].split(self.chunk)
-                else:
-                    msg_split = []
-                    msg_split.append(msg[1][key])
-                for message in msg_split:
-                    msg_pickle = pickle.dumps(message)
-                    sock.sendto(struct.pack(">I", len(msg_pickle)), address)
-                    sock.sendto(msg_pickle, address)
+        if msg == b'':
+            sock.sendto(b'', address)
+        else:
+            if msg[0] == 'MSG_INITIAL_GLOBAL_WEIGHTS_SERVER_TO_CLIENT' or \
+                    msg[0] == 'MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER':
+                send_buffers = [param for param in msg[1].values()]
+                for i in range(len(send_buffers)):
+                    key = list(msg[1].items())[i][0]
+                    if len(send_buffers[i].size()) > 0:
+                        flat_params = torch.cat([tensor.view(-1) for tensor in send_buffers[i]])
+                        msg_split = flat_params.split(self.chunk)
+                        for message in msg_split:
+                            message = [key, message.detatch().numpy()]
+                            self.pickle_send_udp(message, address, sock)
+                    else:
+                        message = [key, send_buffers[i].detatch().numpy()]
+                        self.pickle_send_udp(message, address, sock)
         sock.sendto(b"END", address)
+
+    def pickle_send_udp(self, message, address, sock):
+        msg_pickle = pickle.dumps(message)
+        sock.sendto(struct.pack(">I", len(msg_pickle)), address)
+        sock.sendto(msg_pickle, address)
 
     def recv_msg_udp(self, sock, expect_msg_type=None):
         buffer = bytearray()
@@ -65,11 +72,11 @@ class Communicator(object):
             pass
 
         buffer = pickle.loads(buffer)
-        if expect_msg_type is not None:
-            if msg[0] == 'Finish':
-                return msg
-            elif msg[0] != expect_msg_type:
-                raise Exception("Expected " + expect_msg_type + " but received " + msg[0])
+        #if expect_msg_type is not None:
+            #if msg[0] == 'Finish':
+                #return msg
+            #elif msg[0] != expect_msg_type:
+                #raise Exception("Expected " + expect_msg_type + " but received " + msg[0])
 
         return buffer
 
