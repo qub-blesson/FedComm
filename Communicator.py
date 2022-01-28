@@ -27,7 +27,8 @@ class Communicator(object):
         # all types
         self.ip = ip_address
         self.client = None
-        self.chunk = 507
+        self.chunk = 500
+        self.BUFFER_SIZE = 65536
         self.sock = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 
     # UDP Functionality
@@ -45,33 +46,34 @@ class Communicator(object):
                         flat_params = torch.cat([tensor.view(-1) for tensor in send_buffers[i]])
                         msg_split = flat_params.split(self.chunk)
                         for message in msg_split:
-                            message = [key, message.detatch().numpy()]
+                            message = [key, message.detach().numpy()]
                             self.pickle_send_udp(message, address, sock)
                     else:
-                        message = [key, send_buffers[i].detatch().numpy()]
+                        message = [key, send_buffers[i].detach().numpy()]
                         self.pickle_send_udp(message, address, sock)
         sock.sendto(b"END", address)
 
     def pickle_send_udp(self, message, address, sock):
         msg_pickle = pickle.dumps(message)
-        sock.sendto(struct.pack(">I", len(msg_pickle)), address)
         sock.sendto(msg_pickle, address)
 
     def recv_msg_udp(self, sock, expect_msg_type=None):
-        buffer = bytearray()
+        buffer = []
         read_next = True
-        msg = None
+
         try:
             while read_next:
-                msg_len = struct.unpack(">I", sock.recv(100))[0]
-                msg = sock.recvfrom(msg_len)[0]
+                msg = sock.recvfrom(self.BUFFER_SIZE)[0]
                 if msg == b"END":
                     break
-                buffer.extend(msg)
+                try:
+                    buffer.append(pickle.loads(msg))
+                except:
+                    continue
+
         except Exception:
             pass
 
-        buffer = pickle.loads(buffer)
         #if expect_msg_type is not None:
             #if msg[0] == 'Finish':
                 #return msg
