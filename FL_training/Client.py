@@ -45,7 +45,7 @@ class Client(Communicator):
                                    momentum=0.9)
         logger.debug('Receiving Global Weights..')
         weights = None
-        weights = utils.concat_weights(self.recv_msg_udp(self.sock), self.net.state_dict())
+        weights = utils.concat_weights_client(self.recv_msg_udp(self.sock), self.net.state_dict())
 
         if self.split_layer == (config.model_len - 1):
             self.net.load_state_dict(weights)
@@ -55,19 +55,6 @@ class Client(Communicator):
         logger.debug('Initialize Finished')
 
     def train(self, trainloader):
-        # Network speed test
-        network_time_start = time.time()
-        msg = ['MSG_TEST_NETWORK', self.uninet.cpu().state_dict()]
-        self.send_msg_udp(self.sock, (self.server_addr, self.server_port), msg)
-
-        msg = self.recv_msg_udp(self.sock, 'MSG_TEST_NETWORK')
-        network_time_end = time.time()
-        network_speed = (2 * config.model_size * 8) / (network_time_end - network_time_start)  # Mbit/s
-
-        logger.info('Network speed is {:}'.format(network_speed))
-        msg = ['MSG_TEST_NETWORK', self.ip, network_speed]
-        self.send_msg_udp(self.sock, (self.server_addr, self.server_port), msg)
-
         # Training start
         s_time_total = time.time()
         time_training_c = 0
@@ -98,15 +85,6 @@ class Client(Communicator):
                 self.optimizer.step()
 
         e_time_total = time.time()
-        logger.info('Total time: ' + str(e_time_total - s_time_total))
-
-        training_time_pr = (e_time_total - s_time_total) / int((config.N / (config.K * config.B)))
-        logger.info('training_time_per_iteration: ' + str(training_time_pr))
-
-        msg = ['MSG_TRAINING_TIME_PER_ITERATION', self.ip, training_time_pr]
-        start = time.time()
-        self.send_msg_udp_weights(self.sock, (self.server_addr, self.server_port), msg)
-        config.comm_time += (time.time() - start)
 
         return e_time_total - s_time_total
 

@@ -55,14 +55,13 @@ for r in range(config.R):
     logger.info('==> Round {:} Start'.format(r))
 
     s_time = time.time()
-    state, bandwidth = server.train(thread_number=config.K, client_ips=config.CLIENTS_LIST)
+    server.train(thread_number=config.K, client_ips=config.CLIENTS_LIST)
     aggregrated_model = server.aggregate(config.CLIENTS_LIST)
     e_time = time.time()
 
     # Recording each round training time, bandwidth and test accuracy
     trianing_time = e_time - s_time
     res['trianing_time'].append(trianing_time)
-    res['bandwidth_record'].append(bandwidth)
 
     test_acc = server.test(r)
     res['test_acc_record'].append(test_acc)
@@ -74,15 +73,11 @@ for r in range(config.R):
     logger.info('==> Round Training Time: {:}'.format(trianing_time))
 
     logger.info('==> Reinitialization for Round : {:}'.format(r + 1))
-    if offload:
-        split_layers = server.adaptive_offload(agent, state)
-    else:
-        split_layers = config.split_layer
 
     if r > 49:
         LR = config.LR * 0.1
 
-    server.reinitialize(split_layers, offload, first, LR)
+    server.reinitialize(config.split_layer, offload, first, LR)
     logger.info('==> Reinitialization Finish')
 comm_time = server.finish(config.CLIENTS_LIST)
 res['communication_time'].append(comm_time)

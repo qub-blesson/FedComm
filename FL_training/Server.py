@@ -80,54 +80,15 @@ class Server(Communicator):
             self.send_msg_udp_weights(self.sock, self.client_socks[i], msg)
 
     def train(self, thread_number, client_ips):
-        # Network test
-        self.net_threads = {}
-        self.bandwidth = {}
-
-        for i in range(len(client_ips)):
-            self.net_threads[client_ips[i]] = threading.Thread(target=self._thread_network_testing,
-                                                               args=(client_ips[i],))
-            self.net_threads[client_ips[i]].start()
-
-        for i in range(len(client_ips)):
-            self.net_threads[client_ips[i]].join()
-
-        for s in self.client_socks:
-            msg = self.recv_msg_udp(self.sock, 'MSG_TEST_NETWORK')
-            self.bandwidth[msg[1]] = msg[2]
-
         # Training start
-        self.threads = {}
 
         for i in range(len(client_ips)):
             if config.split_layer[i] == (config.model_len - 1):
-                self.threads[client_ips[i]] = threading.Thread(target=self._thread_training_no_offloading,
-                                                               args=(client_ips[i],))
                 logger.info(str(client_ips[i]) + ' no offloading training start')
-                self.threads[client_ips[i]].start()
-            else:
-                logger.info(str(client_ips[i]))
-                self.threads[client_ips[i]] = threading.Thread(target=self._thread_training_offloading,
-                                                               args=(client_ips[i],))
-                logger.info(str(client_ips[i]) + ' offloading training start')
-                self.threads[client_ips[i]].start()
 
-        for i in range(len(client_ips)):
-            self.threads[client_ips[i]].join()
-
-        self.ttpi = {}  # Training time per iteration
-        for s in self.client_socks:
-            msg = self.recv_msg_udp(self.sock, 'MSG_TRAINING_TIME_PER_ITERATION')
-            self.ttpi[msg[1]] = msg[2]
-
-        self.group_labels = self.clustering(self.ttpi, self.bandwidth)
-        self.offloading = self.get_offloading(self.split_layers)
-        state = self.concat_norm(self.ttpi, self.offloading)
-
-        return state, self.bandwidth
+        return
 
     def _thread_network_testing(self, client_ip):
-        msg = self.recv_msg_udp(self.sock, 'MSG_TEST_NETWORK')
         msg = ['MSG_TEST_NETWORK', self.uninet.cpu().state_dict()]
         self.send_msg_udp_weights(self.sock, self.client_socks[client_ip], msg)
 
@@ -161,7 +122,7 @@ class Server(Communicator):
             msg = self.recv_msg_udp(self.sock, 'MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER')
             if config.split_layer[i] != (config.model_len - 1):
                 w_local = (
-                    utils.concat_weights(self.uninet.state_dict(), msg[1], self.nets[client_ips[i]].state_dict()),
+                    utils.concat_weights_server(self.uninet.state_dict(), msg[1], self.nets[client_ips[i]].state_dict()),
                     config.N / config.K)
                 w_local_list.append(w_local)
             else:

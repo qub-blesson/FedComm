@@ -36,16 +36,7 @@ class Communicator(object):
         if msg == b'':
             sock.sendto(b'', address)
         else:
-            #if msg[0] == 'MSG_INITIAL_GLOBAL_WEIGHTS_SERVER_TO_CLIENT' or \
-             #       msg[0] == 'MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER':
             self.handle_weights(sock, address, msg)
-        sock.sendto(b"END", address)
-
-    def send_msg_udp(self, sock, address, msg):
-        if len(msg) == 2 and msg[0] == 'MSG_TEST_NETWORK':
-            self.handle_weights(sock, address, msg)
-        elif len(msg) == 2 and msg[0] == 'MSG_TEST_NETWORK':
-            self.pickle_send_udp(msg, address, sock)
         sock.sendto(b"END", address)
 
     def handle_weights(self, sock, address, msg):
@@ -70,6 +61,7 @@ class Communicator(object):
         buffer = []
         read_next = True
         address = None
+        count = 0
 
         try:
             while read_next:
