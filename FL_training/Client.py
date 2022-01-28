@@ -62,7 +62,7 @@ class Client(Communicator):
         self.send_msg_udp(self.sock, (self.server_addr, self.server_port), msg)
         config.comm_time += (time.time() - start)
 
-        msg = self.recv_msg_udp(self.sock, 'MSG_TEST_NETWORK')[1]
+        msg = self.recv_msg_udp(self.sock, 'MSG_TEST_NETWORK')
         network_time_end = time.time()
         network_speed = (2 * config.model_size * 8) / (network_time_end - network_time_start)  # Mbit/s
 
@@ -96,7 +96,7 @@ class Client(Communicator):
                 self.send_msg_udp(self.sock, (self.server_addr, self.server_port), msg)
 
                 # Wait receiving server gradients
-                gradients = self.recv_msg_udp(self.sock)[1].to(self.device)
+                gradients = self.recv_msg_udp(self.sock).to(self.device)
 
                 outputs.backward(gradients)
                 self.optimizer.step()
