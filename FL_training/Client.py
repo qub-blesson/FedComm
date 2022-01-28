@@ -28,7 +28,7 @@ class Client(Communicator):
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.model_name = model_name
         self.uninet = utils.get_model('Unit', self.model_name, config.model_len - 1, self.device, config.model_cfg)
-        self.send_msg_udp_weights(self.sock, (server_addr, server_port), b'')
+        self.send_msg_udp(self.sock, (server_addr, server_port), b'')
         self.server_addr = server_addr
         self.server_port = server_port
 
@@ -45,7 +45,7 @@ class Client(Communicator):
                                    momentum=0.9)
         logger.debug('Receiving Global Weights..')
         weights = None
-        weights = utils.concat_weights_client(self.recv_msg_udp(self.sock), self.net.state_dict())
+        weights = utils.concat_weights_client(self.recv_msg_udp(self.sock)[0], self.net.state_dict())
 
         if self.split_layer == (config.model_len - 1):
             self.net.load_state_dict(weights)
@@ -70,19 +70,7 @@ class Client(Communicator):
                 self.optimizer.step()
 
         else:  # Offloading training
-            for batch_idx, (inputs, targets) in enumerate(tqdm.tqdm(trainloader)):
-                inputs, targets = inputs.to(self.device), targets.to(self.device)
-                self.optimizer.zero_grad()
-                outputs = self.net(inputs)
-
-                msg = ['MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER', outputs.cpu(), targets.cpu()]
-                self.send_msg_udp_weights(self.sock, (self.server_addr, self.server_port), msg)
-
-                # Wait receiving server gradients
-                gradients = self.recv_msg_udp(self.sock).to(self.device)
-
-                outputs.backward(gradients)
-                self.optimizer.step()
+            pass
 
         e_time_total = time.time()
 
@@ -91,7 +79,7 @@ class Client(Communicator):
     def upload(self):
         msg = ['MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER', self.net.cpu().state_dict()]
         start = time.time()
-        self.send_msg_udp_weights(self.sock, (self.server_addr, self.server_port), msg)
+        self.send_msg_udp(self.sock, (self.server_addr, self.server_port), msg)
         config.comm_time += (time.time() - start)
 
     def reinitialize(self, split_layers, offload, first, LR):
@@ -99,4 +87,4 @@ class Client(Communicator):
 
     def finish(self):
         msg = ['MSG_COMMUNICATION_TIME', config.comm_time]
-        self.send_msg_udp_weights(self.sock, (self.server_addr, self.server_port), msg)
+        self.send_msg_udp(self.sock, (self.server_addr, self.server_port), msg)

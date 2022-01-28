@@ -32,7 +32,7 @@ class Communicator(object):
         self.sock = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 
     # UDP Functionality
-    def send_msg_udp_weights(self, sock, address, msg):
+    def send_msg_udp(self, sock, address, msg):
         if msg == b'':
             sock.sendto(b'', address)
         else:
@@ -82,7 +82,7 @@ class Communicator(object):
             #elif msg[0] != expect_msg_type:
                 #raise Exception("Expected " + expect_msg_type + " but received " + msg[0])
 
-        return buffer
+        return buffer, address
 
     def init_recv_msg_udp(self, sock):
         buffer = bytearray()

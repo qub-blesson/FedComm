@@ -36,7 +36,7 @@ class Server(Communicator):
         self.sock.bind((self.ip, self.port))
         self.client_socks = {}
         while len(self.client_socks) < config.K:
-            msg = self.init_recv_msg_udp(self.sock)
+            msg = self.init_recv_msg_udp(self.sock)[0]
             logger.info('Got connection from ' + str(msg[0]))
             self.client_socks[str(msg[0])] = (msg[0], msg[1])
 
@@ -77,7 +77,7 @@ class Server(Communicator):
 
         msg = ['MSG_INITIAL_GLOBAL_WEIGHTS_SERVER_TO_CLIENT', self.uninet.state_dict()]
         for i in self.client_socks:
-            self.send_msg_udp_weights(self.sock, self.client_socks[i], msg)
+            self.send_msg_udp(self.sock, self.client_socks[i], msg)
 
     def train(self, thread_number, client_ips):
         # Training start
@@ -90,7 +90,7 @@ class Server(Communicator):
 
     def _thread_network_testing(self, client_ip):
         msg = ['MSG_TEST_NETWORK', self.uninet.cpu().state_dict()]
-        self.send_msg_udp_weights(self.sock, self.client_socks[client_ip], msg)
+        self.send_msg_udp(self.sock, self.client_socks[client_ip], msg)
 
     def _thread_training_no_offloading(self, client_ip):
         pass
@@ -98,7 +98,7 @@ class Server(Communicator):
     def _thread_training_offloading(self, client_ip):
         iteration = int((config.N / (config.K * config.B)))
         for i in range(iteration):
-            msg = self.recv_msg_udp(self.sock, 'MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER')
+            msg = self.recv_msg_udp(self.sock, 'MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER')[0]
             smashed_layers = msg[1]
             labels = msg[2]
 
@@ -111,21 +111,24 @@ class Server(Communicator):
 
             # Send gradients to client
             msg = ['MSG_SERVER_GRADIENTS_SERVER_TO_CLIENT_' + str(client_ip), inputs.grad]
-            self.send_msg_udp_weights(self.sock, self.client_socks[client_ip], msg)
+            self.send_msg_udp(self.sock, self.client_socks[client_ip], msg)
 
         logger.info(str(client_ip) + ' offloading training end')
         return 'Finish'
 
     def aggregate(self, client_ips):
+        # TODO: Fix this for UDP (might need a dictionary with client IP as the key)
         w_local_list = []
         for i in range(len(client_ips)):
             msg = self.recv_msg_udp(self.sock, 'MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER')
             if config.split_layer[i] != (config.model_len - 1):
+                logger.info("here")
                 w_local = (
                     utils.concat_weights_server(self.uninet.state_dict(), msg[1], self.nets[client_ips[i]].state_dict()),
                     config.N / config.K)
                 w_local_list.append(w_local)
             else:
+                logger.info("there")
                 w_local = (msg[1], config.N / config.K)
                 w_local_list.append(w_local)
         zero_model = utils.zero_init(self.uninet).state_dict()
@@ -250,7 +253,7 @@ class Server(Communicator):
 
     def scatter(self, msg):
         for i in self.client_socks:
-            self.send_msg_udp_weights(self.sock, self.client_socks[i], msg)
+            self.send_msg_udp(self.sock, self.client_socks[i], msg)
 
     def finish(self, client_ips):
         msg = []
