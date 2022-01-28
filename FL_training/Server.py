@@ -77,7 +77,7 @@ class Server(Communicator):
 
         msg = ['MSG_INITIAL_GLOBAL_WEIGHTS_SERVER_TO_CLIENT', self.uninet.state_dict()]
         for i in self.client_socks:
-            self.send_msg_udp(self.sock, self.client_socks[i], msg)
+            self.send_msg_udp_weights(self.sock, self.client_socks[i], msg)
 
     def train(self, thread_number, client_ips):
         # Network test
@@ -129,7 +129,7 @@ class Server(Communicator):
     def _thread_network_testing(self, client_ip):
         msg = self.recv_msg_udp(self.sock, 'MSG_TEST_NETWORK')
         msg = ['MSG_TEST_NETWORK', self.uninet.cpu().state_dict()]
-        self.send_msg_udp(self.sock, self.client_socks[client_ip], msg)
+        self.send_msg_udp_weights(self.sock, self.client_socks[client_ip], msg)
 
     def _thread_training_no_offloading(self, client_ip):
         pass
@@ -150,7 +150,7 @@ class Server(Communicator):
 
             # Send gradients to client
             msg = ['MSG_SERVER_GRADIENTS_SERVER_TO_CLIENT_' + str(client_ip), inputs.grad]
-            self.send_msg_udp(self.sock, self.client_socks[client_ip], msg)
+            self.send_msg_udp_weights(self.sock, self.client_socks[client_ip], msg)
 
         logger.info(str(client_ip) + ' offloading training end')
         return 'Finish'
@@ -289,7 +289,7 @@ class Server(Communicator):
 
     def scatter(self, msg):
         for i in self.client_socks:
-            self.send_msg_udp(self.sock, self.client_socks[i], msg)
+            self.send_msg_udp_weights(self.sock, self.client_socks[i], msg)
 
     def finish(self, client_ips):
         msg = []

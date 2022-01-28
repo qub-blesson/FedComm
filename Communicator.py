@@ -28,30 +28,39 @@ class Communicator(object):
         self.ip = ip_address
         self.client = None
         self.chunk = 500
-        self.BUFFER_SIZE = 65536
+        self.MAX_BUFFER_SIZE = 65536
         self.sock = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 
     # UDP Functionality
-    # TODO: Check if sending works
-    def send_msg_udp(self, sock, address, msg):
+    def send_msg_udp_weights(self, sock, address, msg):
         if msg == b'':
             sock.sendto(b'', address)
         else:
-            if msg[0] == 'MSG_INITIAL_GLOBAL_WEIGHTS_SERVER_TO_CLIENT' or \
-                    msg[0] == 'MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER':
-                send_buffers = [param for param in msg[1].values()]
-                for i in range(len(send_buffers)):
-                    key = list(msg[1].items())[i][0]
-                    if len(send_buffers[i].size()) > 0:
-                        flat_params = torch.cat([tensor.view(-1) for tensor in send_buffers[i]])
-                        msg_split = flat_params.split(self.chunk)
-                        for message in msg_split:
-                            message = [key, message.detach().numpy()]
-                            self.pickle_send_udp(message, address, sock)
-                    else:
-                        message = [key, send_buffers[i].detach().numpy()]
-                        self.pickle_send_udp(message, address, sock)
+            #if msg[0] == 'MSG_INITIAL_GLOBAL_WEIGHTS_SERVER_TO_CLIENT' or \
+             #       msg[0] == 'MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER':
+            self.handle_weights(sock, address, msg)
         sock.sendto(b"END", address)
+
+    def send_msg_udp(self, sock, address, msg):
+        logger.info(msg[0])
+        logger.info(msg[1])
+        logger.info(msg[2])
+        self.handle_weights(sock, address, msg)
+        sock.sendto(b"END", address)
+
+    def handle_weights(self, sock, address, msg):
+        send_buffers = [param for param in msg[1].values()]
+        for i in range(len(send_buffers)):
+            key = list(msg[1].items())[i][0]
+            if len(send_buffers[i].size()) > 0:
+                flat_params = torch.cat([tensor.view(-1) for tensor in send_buffers[i]])
+                msg_split = flat_params.split(self.chunk)
+                for message in msg_split:
+                    message = [key, message.detach().numpy()]
+                    self.pickle_send_udp(message, address, sock)
+            else:
+                message = [key, send_buffers[i].detach().numpy()]
+                self.pickle_send_udp(message, address, sock)
 
     def pickle_send_udp(self, message, address, sock):
         msg_pickle = pickle.dumps(message)
@@ -60,10 +69,11 @@ class Communicator(object):
     def recv_msg_udp(self, sock, expect_msg_type=None):
         buffer = []
         read_next = True
+        address = None
 
         try:
             while read_next:
-                msg = sock.recvfrom(self.BUFFER_SIZE)[0]
+                msg, address = sock.recvfrom(self.MAX_BUFFER_SIZE)[0]
                 if msg == b"END":
                     break
                 try:

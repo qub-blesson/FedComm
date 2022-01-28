@@ -28,7 +28,7 @@ class Client(Communicator):
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.model_name = model_name
         self.uninet = utils.get_model('Unit', self.model_name, config.model_len - 1, self.device, config.model_cfg)
-        self.send_msg_udp(self.sock, (server_addr, server_port), b'')
+        self.send_msg_udp_weights(self.sock, (server_addr, server_port), b'')
         self.server_addr = server_addr
         self.server_port = server_port
 
@@ -58,9 +58,7 @@ class Client(Communicator):
         # Network speed test
         network_time_start = time.time()
         msg = ['MSG_TEST_NETWORK', self.uninet.cpu().state_dict()]
-        start = time.time()
         self.send_msg_udp(self.sock, (self.server_addr, self.server_port), msg)
-        config.comm_time += (time.time() - start)
 
         msg = self.recv_msg_udp(self.sock, 'MSG_TEST_NETWORK')
         network_time_end = time.time()
@@ -68,9 +66,7 @@ class Client(Communicator):
 
         logger.info('Network speed is {:}'.format(network_speed))
         msg = ['MSG_TEST_NETWORK', self.ip, network_speed]
-        start = time.time()
         self.send_msg_udp(self.sock, (self.server_addr, self.server_port), msg)
-        config.comm_time += (time.time() - start)
 
         # Training start
         s_time_total = time.time()
@@ -93,7 +89,7 @@ class Client(Communicator):
                 outputs = self.net(inputs)
 
                 msg = ['MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER', outputs.cpu(), targets.cpu()]
-                self.send_msg_udp(self.sock, (self.server_addr, self.server_port), msg)
+                self.send_msg_udp_weights(self.sock, (self.server_addr, self.server_port), msg)
 
                 # Wait receiving server gradients
                 gradients = self.recv_msg_udp(self.sock).to(self.device)
@@ -109,7 +105,7 @@ class Client(Communicator):
 
         msg = ['MSG_TRAINING_TIME_PER_ITERATION', self.ip, training_time_pr]
         start = time.time()
-        self.send_msg_udp(self.sock, (self.server_addr, self.server_port), msg)
+        self.send_msg_udp_weights(self.sock, (self.server_addr, self.server_port), msg)
         config.comm_time += (time.time() - start)
 
         return e_time_total - s_time_total
@@ -117,7 +113,7 @@ class Client(Communicator):
     def upload(self):
         msg = ['MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER', self.net.cpu().state_dict()]
         start = time.time()
-        self.send_msg_udp(self.sock, (self.server_addr, self.server_port), msg)
+        self.send_msg_udp_weights(self.sock, (self.server_addr, self.server_port), msg)
         config.comm_time += (time.time() - start)
 
     def reinitialize(self, split_layers, offload, first, LR):
@@ -125,4 +121,4 @@ class Client(Communicator):
 
     def finish(self):
         msg = ['MSG_COMMUNICATION_TIME', config.comm_time]
-        self.send_msg_udp(self.sock, (self.server_addr, self.server_port), msg)
+        self.send_msg_udp_weights(self.sock, (self.server_addr, self.server_port), msg)
