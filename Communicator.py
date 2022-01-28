@@ -82,7 +82,7 @@ class Communicator(object):
             #elif msg[0] != expect_msg_type:
                 #raise Exception("Expected " + expect_msg_type + " but received " + msg[0])
 
-        return buffer, address
+        return buffer
 
     def recv_msg_udp_agg(self, sock, expect_msg_type=None):
         agg_dict = dict.fromkeys(config.CLIENTS_LIST, [])
