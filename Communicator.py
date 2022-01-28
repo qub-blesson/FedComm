@@ -42,10 +42,10 @@ class Communicator(object):
         sock.sendto(b"END", address)
 
     def send_msg_udp(self, sock, address, msg):
-        logger.info(msg[0])
-        logger.info(msg[1])
-        logger.info(msg[2])
-        self.handle_weights(sock, address, msg)
+        if len(msg) == 2 and msg[0] == 'MSG_TEST_NETWORK':
+            self.handle_weights(sock, address, msg)
+        elif len(msg) == 2 and msg[0] == 'MSG_TEST_NETWORK':
+            self.pickle_send_udp(msg, address, sock)
         sock.sendto(b"END", address)
 
     def handle_weights(self, sock, address, msg):
@@ -73,7 +73,7 @@ class Communicator(object):
 
         try:
             while read_next:
-                msg, address = sock.recvfrom(self.MAX_BUFFER_SIZE)[0]
+                msg, address = sock.recvfrom(self.MAX_BUFFER_SIZE)
                 if msg == b"END":
                     break
                 try:
