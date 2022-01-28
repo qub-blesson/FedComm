@@ -45,7 +45,7 @@ class Client(Communicator):
                                    momentum=0.9)
         logger.debug('Receiving Global Weights..')
         weights = None
-        weights = utils.concat_weights_client(self.recv_msg_udp(self.sock)[0], self.net.state_dict())
+        weights = utils.concat_weights_client(self.recv_msg_udp(self.sock), self.net.state_dict())
 
         if self.split_layer == (config.model_len - 1):
             self.net.load_state_dict(weights)
@@ -78,9 +78,7 @@ class Client(Communicator):
 
     def upload(self):
         msg = ['MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER', self.net.cpu().state_dict()]
-        start = time.time()
         self.send_msg_udp(self.sock, (self.server_addr, self.server_port), msg)
-        config.comm_time += (time.time() - start)
 
     def reinitialize(self, split_layers, offload, first, LR):
         self.initialize(split_layers, offload, first, LR)

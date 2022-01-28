@@ -84,6 +84,29 @@ class Communicator(object):
 
         return buffer, address
 
+    def recv_msg_udp_agg(self, sock, expect_msg_type=None):
+        agg_dict = dict.fromkeys(config.CLIENTS_LIST, [])
+        read_next = True
+        address = None
+        count = 0
+
+        try:
+            while read_next:
+                msg, address = sock.recvfrom(self.MAX_BUFFER_SIZE)
+                if msg == b"END":
+                    if count == 3:
+                        break
+                    count += 1
+                try:
+                    agg_dict[address[0]].append(pickle.loads(msg))
+                except:
+                    continue
+
+        except Exception:
+            pass
+
+        return agg_dict, address
+
     def init_recv_msg_udp(self, sock):
         buffer = bytearray()
         read_next = True
