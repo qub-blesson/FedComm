@@ -78,6 +78,8 @@ class Client(Communicator):
 
     def upload(self):
         msg = ['MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER', self.net.cpu().state_dict()]
+        for key in msg[1]:
+            logger.info(msg[1][key].size())
         self.send_msg_udp(self.sock, (self.server_addr, self.server_port), msg)
 
     def reinitialize(self, split_layers, offload, first, LR):

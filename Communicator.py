@@ -90,16 +90,22 @@ class Communicator(object):
         count = 0
 
         while read_next:
-            msg, address = sock.recvfrom(4096)
+            try :
+                msg, address = sock.recvfrom(4096)
+            except:
+                break
             if msg == b"END":
                 count += 1
+                sock.settimeout(2)
                 if count == 4:
                     break
+                continue
             try:
                 agg_dict[address[0]].append(pickle.loads(msg))
             except:
                 continue
 
+        sock.settimeout(None)
         return agg_dict
 
     def init_recv_msg_udp(self, sock):
