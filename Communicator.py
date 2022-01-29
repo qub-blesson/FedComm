@@ -87,7 +87,6 @@ class Communicator(object):
     def recv_msg_udp_agg(self, sock, expect_msg_type=None):
         agg_dict = dict.fromkeys(config.CLIENTS_LIST, [])
         read_next = True
-        address = None
         count = 0
 
         try:
@@ -97,15 +96,16 @@ class Communicator(object):
                     if count == 3:
                         break
                     count += 1
+                    sock.settimeout(2)
                 try:
-                    agg_dict[address[0]].append(pickle.loads(msg))
+                    msg = pickle.loads(msg)
+                    agg_dict[address[0]].append(msg)
                 except:
                     continue
-
         except Exception:
             pass
 
-        return agg_dict, address
+        return agg_dict
 
     def init_recv_msg_udp(self, sock):
         buffer = bytearray()

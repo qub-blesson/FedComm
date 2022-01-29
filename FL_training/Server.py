@@ -103,7 +103,7 @@ class Server(Communicator):
         w_local_list = []
         msg = self.recv_msg_udp_agg(self.sock, 'MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER')
         for weight in msg:
-            weights = utils.concat_weights_client(weight, self.uninet.state_dict())
+            weights = utils.concat_weights_client(msg[weight], self.uninet.state_dict())
             w_local = (weights, config.N / config.K)
             w_local_list.append(w_local)
         zero_model = utils.zero_init(self.uninet).state_dict()
