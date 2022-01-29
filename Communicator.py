@@ -85,30 +85,24 @@ class Communicator(object):
         return buffer
 
     def recv_msg_udp_agg(self, sock, expect_msg_type=None):
-        agg_dict = dict.fromkeys(config.CLIENTS_LIST, [])
+        agg_dict = {'192.168.101.116': [], '192.168.101.217': [], '192.168.101.218': [], '192.168.101.219': []}
         read_next = True
         count = 0
 
-        try:
-            while read_next:
-                msg, address = sock.recvfrom(self.MAX_BUFFER_SIZE)
-                if msg == b"END":
-                    if count == 3:
-                        break
-                    count += 1
-                    sock.settimeout(2)
-                try:
-                    msg = pickle.loads(msg)
-                    agg_dict[address[0]].append(msg)
-                except:
-                    continue
-        except Exception:
-            pass
+        while read_next:
+            msg, address = sock.recvfrom(4096)
+            if msg == b"END":
+                count += 1
+                if count == 4:
+                    break
+            try:
+                agg_dict[address[0]].append(pickle.loads(msg))
+            except:
+                continue
 
         return agg_dict
 
     def init_recv_msg_udp(self, sock):
-        buffer = bytearray()
         read_next = True
         ip = None
         try:
