@@ -106,7 +106,6 @@ def concat_weights_client(weights, sweights):
         concat_dict[weight] = []
 
     for weight in weights:
-        logger.info(weight[0])
         concat_dict[weight[0]].append(torch.from_numpy(weight[1]))
 
     for key in concat_dict:
@@ -119,8 +118,8 @@ def concat_weights_client(weights, sweights):
             for i in range((sweights[key].numel()) - torch.cat(concat_dict[key]).size()[0]):
                 concat_dict[key].append(torch.from_numpy(np.zeros(1)))
         concat_dict[key] = torch.cat(concat_dict[key])
-        #if concat_dict[key].size()[0] > sweights[key].numel():
-            #concat_dict[key] = concat_dict[key][:sweights[key].numel()]
+        if concat_dict[key].size()[0] > sweights[key].numel():
+            concat_dict[key] = concat_dict[key][:sweights[key].numel()]
         concat_dict[key] = torch.reshape(concat_dict[key], sweights[key].size())
 
     return concat_dict

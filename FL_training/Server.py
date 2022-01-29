@@ -99,7 +99,6 @@ class Server(Communicator):
         pass
 
     def aggregate(self, client_ips):
-        # TODO: Fix this for UDP (might need a dictionary with client IP as the key)
         w_local_list = []
         msg = self.recv_msg_udp_agg(self.sock, 'MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER')
         for weight in msg:
