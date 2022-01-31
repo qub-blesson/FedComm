@@ -230,6 +230,7 @@ class Server(Communicator):
             self.send_msg_udp(self.sock, self.client_socks[i], msg)
 
     def finish(self, client_ips):
+        logger.info(self.packets_received)
         msg = []
         for i in range(len(client_ips)):
             msg.append(self.recv_msg_udp(self.sock, 'MSG_COMMUNICATION_TIME')[1])

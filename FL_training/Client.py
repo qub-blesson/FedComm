@@ -84,5 +84,6 @@ class Client(Communicator):
         self.initialize(split_layers, offload, first, LR)
 
     def finish(self):
+        logger.info(self.packets_sent)
         msg = ['MSG_COMMUNICATION_TIME', config.comm_time]
         self.send_msg_udp(self.sock, (self.server_addr, self.server_port), msg)
