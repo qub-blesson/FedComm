@@ -30,11 +30,14 @@ class Communicator(object):
         self.chunk = 500
         self.MAX_BUFFER_SIZE = 65536
         self.sock = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+        self.packets_sent = 0
+        self.packets_received = 0
 
     # UDP Functionality
     def send_msg_udp(self, sock, address, msg):
         if msg == b'':
             sock.sendto(b'', address)
+            self.packets_sent += 1
         else:
             self.handle_weights(sock, address, msg)
         sock.sendto(b"END", address)
@@ -46,6 +49,7 @@ class Communicator(object):
             if len(send_buffers[i].size()) > 0:
                 flat_params = torch.cat([tensor.view(-1) for tensor in send_buffers[i]])
                 msg_split = flat_params.split(self.chunk)
+                self.packets_sent += len(msg_split)
                 for message in msg_split:
                     message = [key, message.detach().numpy()]
                     self.pickle_send_udp(message, address, sock)
@@ -105,6 +109,8 @@ class Communicator(object):
             except:
                 continue
 
+        for key in agg_dict:
+            self.packets_received += len(agg_dict[key])
         sock.settimeout(None)
         return agg_dict
 
@@ -114,6 +120,7 @@ class Communicator(object):
         try:
             while read_next:
                 (msg, ip) = sock.recvfrom(4096)
+                self.packets_received += 1
                 if msg == b"END":
                     break
         except Exception:
