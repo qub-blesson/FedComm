@@ -61,32 +61,6 @@ class Client(Communicator):
         logger.debug('Initialize Finished')
 
     def train(self, trainloader):
-        # Network speed test
-        network_time_start = time.time()
-        msg = ['MSG_TEST_NETWORK', self.uninet.cpu().state_dict()]
-        start = time.time()
-        if config.COMM == 'TCP':
-            self.snd_msg_tcp(self.sock, msg)
-        elif config.COMM == 'MQTT' or config.COMM == 'AMQP':
-            self.send_msg(msg)
-        config.comm_time += (time.time() - start)
-
-        if config.COMM == 'TCP':
-            msg = self.recv_msg(self.sock, 'MSG_TEST_NETWORK')[1]
-        elif config.COMM == 'MQTT' or config.COMM == 'AMQP':
-            msg = self.q.get()[1]
-        network_time_end = time.time()
-        network_speed = (2 * config.model_size * 8) / (network_time_end - network_time_start)  # Mbit/s
-
-        logger.info('Network speed is {:}'.format(network_speed))
-        msg = ['MSG_TEST_NETWORK', self.ip, network_speed]
-        start = time.time()
-        if config.COMM == 'TCP':
-            self.snd_msg_tcp(self.sock, msg)
-        elif config.COMM == 'MQTT' or config.COMM == 'AMQP':
-            self.send_msg(msg)
-        config.comm_time += (time.time() - start)
-
         # Training start
         s_time_total = time.time()
         time_training_c = 0
@@ -101,34 +75,7 @@ class Client(Communicator):
                 loss.backward()
                 self.optimizer.step()
 
-        else:  # Offloading training
-            for batch_idx, (inputs, targets) in enumerate(tqdm.tqdm(trainloader)):
-                inputs, targets = inputs.to(self.device), targets.to(self.device)
-                self.optimizer.zero_grad()
-                outputs = self.net(inputs)
-
-                msg = ['MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER', outputs.cpu(), targets.cpu()]
-                self.snd_msg_tcp(self.sock, msg)
-
-                # Wait receiving server gradients
-                gradients = self.recv_msg(self.sock)[1].to(self.device)
-
-                outputs.backward(gradients)
-                self.optimizer.step()
-
         e_time_total = time.time()
-        logger.info('Total time: ' + str(e_time_total - s_time_total))
-
-        #training_time_pr = (e_time_total - s_time_total) / int((config.N / (config.K * config.B)))
-        #logger.info('training_time_per_iteration: ' + str(training_time_pr))
-
-        msg = ['MSG_TRAINING_TIME_PER_ITERATION', self.ip, e_time_total - s_time_total]
-        start = time.time()
-        if config.COMM == 'TCP':
-            self.snd_msg_tcp(self.sock, msg)
-        elif config.COMM == 'MQTT' or config.COMM == 'AMQP':
-            self.send_msg(msg)
-        config.comm_time += (time.time() - start)
 
         return e_time_total - s_time_total
 

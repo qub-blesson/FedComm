@@ -94,32 +94,6 @@ class Server(Communicator):
             self.send_msg(msg)
 
     def train(self, thread_number, client_ips):
-        # Network test
-        if config.COMM == 'MQTT' or config.COMM == 'AMQP':
-            self._thread_network_testing(None)
-
-        self.net_threads = {}
-        self.bandwidth = {}
-
-        if config.COMM == 'TCP':
-            for i in range(len(client_ips)):
-                self.net_threads[client_ips[i]] = threading.Thread(target=self._thread_network_testing,
-                                                               args=(client_ips[i],))
-                self.net_threads[client_ips[i]].start()
-
-            for i in range(len(client_ips)):
-                self.net_threads[client_ips[i]].join()
-
-            for s in self.client_socks:
-                msg = self.recv_msg(self.client_socks[s], 'MSG_TEST_NETWORK')
-                self.bandwidth[msg[1]] = msg[2]
-        elif config.COMM == 'MQTT' or config.COMM == 'AMQP':
-            connections = 0
-            while connections != config.K:
-                msg = self.q.get()
-                connections += 1
-                self.bandwidth[msg[1]] = msg[2]
-
         # Training start
         self.threads = {}
 
@@ -145,27 +119,7 @@ class Server(Communicator):
                     logger.info(str(client_ips[i]) + ' no offloading training start')
                 else:
                     logger.info(str(client_ips[i]) + ' offloading training start')
-
-        self.ttpi = {}  # Training time per iteration
-        if config.COMM == 'TCP':
-            for s in self.client_socks:
-                msg = self.recv_msg(self.client_socks[s], 'MSG_TRAINING_TIME_PER_ITERATION')
-                self.ttpi[msg[1]] = msg[2]
-        elif config.COMM == 'MQTT' or config.COMM == 'AMQP':
-            connections = 0
-            while connections != config.K:
-                msg = self.q.get()
-                while msg[0] != 'MSG_TRAINING_TIME_PER_ITERATION':
-                    self.q.put(msg)
-                    msg = self.q.get()
-                connections += 1
-                self.ttpi[msg[1]] = msg[2]
-
-        self.group_labels = self.clustering(self.ttpi, self.bandwidth)
-        self.offloading = self.get_offloading(self.split_layers)
-        state = self.concat_norm(self.ttpi, self.offloading)
-
-        return state, self.bandwidth
+        return
 
     def _thread_network_testing(self, client_ip):
         if config.COMM == 'TCP':
