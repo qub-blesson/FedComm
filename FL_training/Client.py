@@ -77,6 +77,12 @@ class Client(Communicator):
 
         e_time_total = time.time()
 
+        msg = ['MSG_TRAINING_TIME_PER_ITERATION', self.ip, e_time_total - s_time_total]
+        if config.COMM == 'TCP':
+            self.snd_msg_tcp(self.sock, msg)
+        elif config.COMM == 'MQTT' or config.COMM == 'AMQP':
+            self.send_msg(msg)
+
         return e_time_total - s_time_total
 
     def upload(self):

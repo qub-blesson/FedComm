@@ -119,7 +119,22 @@ class Server(Communicator):
                     logger.info(str(client_ips[i]) + ' no offloading training start')
                 else:
                     logger.info(str(client_ips[i]) + ' offloading training start')
-        return
+
+        self.ttpi = {}  # Training time per iteration
+        if config.COMM == 'TCP':
+            for s in self.client_socks:
+                msg = self.recv_msg(self.client_socks[s], 'MSG_TRAINING_TIME_PER_ITERATION')
+                self.ttpi[msg[1]] = msg[2]
+        elif config.COMM == 'MQTT' or config.COMM == 'AMQP':
+            connections = 0
+            while connections != config.K:
+                msg = self.q.get()
+                while msg[0] != 'MSG_TRAINING_TIME_PER_ITERATION':
+                    self.q.put(msg)
+                    msg = self.q.get()
+                connections += 1
+                self.ttpi[msg[1]] = msg[2]
+        return self.ttpi
 
     def _thread_network_testing(self, client_ip):
         if config.COMM == 'TCP':

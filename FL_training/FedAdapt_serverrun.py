@@ -51,21 +51,20 @@ else:
     logger.info('Classic FL Training')
 
 res = {}
-res['trianing_time'], res['test_acc_record'], res['bandwidth_record'], res['communication_time'] = [], [], [], []
+res['trianing_time'], res['test_acc_record'], res['communication_time'] = [], [], []
 
 for r in range(config.R):
     logger.info('====================================>')
     logger.info('==> Round {:} Start'.format(r))
 
     s_time = time.time()
-    state, bandwidth = server.train(thread_number=config.K, client_ips=config.CLIENTS_LIST)
+    state = server.train(thread_number=config.K, client_ips=config.CLIENTS_LIST)
     aggregrated_model = server.aggregate(config.CLIENTS_LIST)
     e_time = time.time()
 
     # Recording each round training time, bandwidth and test accuracy
     trianing_time = e_time - s_time
     res['trianing_time'].append(trianing_time)
-    res['bandwidth_record'].append(bandwidth)
     comp_time = (state[0] + state[1] + state[2] + state[3]) / 4
     res['communication_time'].append(trianing_time - comp_time)
     test_acc = server.test(r)
