@@ -88,7 +88,7 @@ class Server(Communicator):
 
         msg = []
         for s in self.client_socks:
-            msg = self.recv_msg_udp_server(self.client_socks[s], 'MSG_TRAINING_TIME_PER_ITERATION')
+            msg = self.recv_msg_udp_server(self.sock, 'MSG_TRAINING_TIME_PER_ITERATION')
         return msg
 
     def _thread_network_testing(self, client_ip):
