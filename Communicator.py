@@ -83,8 +83,6 @@ class Communicator(object):
     def recv_msg_udp(self, sock, expect_msg_type=None):
         buffer = []
         read_next = True
-        address = None
-        count = 0
 
         try:
             while read_next:

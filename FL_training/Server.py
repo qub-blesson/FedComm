@@ -38,14 +38,16 @@ class Server(Communicator):
         self.client_socks = {}
         self.client_ip = {}
 
+        logger.info("Waiting Incoming Connections.")
         while len(self.client_socks) < config.K:
             self.tcp_sock.listen(5)
-            logger.info("Waiting Incoming Connections.")
             (client_sock, (ip, port)) = self.tcp_sock.accept()
-            logger.info('Got connection from ' + str(ip))
-            logger.info(client_sock)
             self.client_socks[str(ip)] = client_sock
-            self.client_ip[str(ip)] = ip
+
+        while len(self.client_ip) < config.K:
+            msg = self.init_recv_msg_udp(self.sock)
+            logger.info('Got connection from ' + str(msg[0]))
+            self.client_ip[str(msg[0])] = (msg[0], msg[1])
 
         self.uninet = utils.get_model('Unit', self.model_name, config.model_len - 1, self.device, config.model_cfg)
 
@@ -83,8 +85,8 @@ class Server(Communicator):
             self.criterion = nn.CrossEntropyLoss()
 
         msg = ['MSG_INITIAL_GLOBAL_WEIGHTS_SERVER_TO_CLIENT', self.uninet.state_dict()]
-        for i in self.client_socks:
-            self.send_msg_udp(self.sock, self.client_socks[i], msg)
+        for i in self.client_ip:
+            self.send_msg_udp(self.sock, self.client_ip[i], msg)
 
     def train(self, thread_number, client_ips):
         # Training start
