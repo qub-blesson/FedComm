@@ -33,7 +33,7 @@ class Server(Communicator):
         self.port = server_port
         self.model_name = model_name
 
-        self.sock.bind((self.ip, self.port))
+        self.sock.bind((self.ip, self.port+1))
         self.tcp_sock.bind((self.ip, self.port))
         self.client_socks = {}
 
