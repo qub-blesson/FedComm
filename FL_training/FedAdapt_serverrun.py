@@ -63,9 +63,10 @@ for r in range(config.R):
     trianing_time = e_time - s_time
     res['trianing_time'].append(trianing_time)
     comp_time = 0
-    for i in range(len(state)):
+    for i in state:
         comp_time += state[i]
     comp_time /= len(state)
+    logger.info(comp_time)
     res['communication_time'].append(trianing_time - comp_time)
     test_acc = server.test(r)
     res['test_acc_record'].append(test_acc)
