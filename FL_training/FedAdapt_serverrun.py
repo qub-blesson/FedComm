@@ -55,14 +55,18 @@ for r in range(config.R):
     logger.info('==> Round {:} Start'.format(r))
 
     s_time = time.time()
-    server.train(thread_number=config.K, client_ips=config.CLIENTS_LIST)
+    state = server.train(thread_number=config.K, client_ips=config.CLIENTS_LIST)
     aggregrated_model = server.aggregate(config.CLIENTS_LIST)
     e_time = time.time()
 
     # Recording each round training time, bandwidth and test accuracy
     trianing_time = e_time - s_time
     res['trianing_time'].append(trianing_time)
-
+    comp_time = 0
+    for i in range(len(state)):
+        comp_time += state[i]
+    comp_time /= len(state)
+    res['communication_time'].append(trianing_time - comp_time)
     test_acc = server.test(r)
     res['test_acc_record'].append(test_acc)
 
