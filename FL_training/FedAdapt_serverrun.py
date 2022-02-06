@@ -65,7 +65,10 @@ for r in range(config.R):
     # Recording each round training time, bandwidth and test accuracy
     trianing_time = e_time - s_time
     res['trianing_time'].append(trianing_time)
-    comp_time = (state[0] + state[1] + state[2] + state[3]) / 4
+    comp_time = 0
+    for key in state:
+        comp_time += state[key]
+    comp_time /= 4
     res['communication_time'].append(trianing_time - comp_time)
     test_acc = server.test(r)
     res['test_acc_record'].append(test_acc)
