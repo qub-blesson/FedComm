@@ -86,7 +86,10 @@ class Server(Communicator):
             if config.split_layer[i] == (config.model_len - 1):
                 logger.info(str(client_ips[i]) + ' no offloading training start')
 
-        return
+        msg = []
+        for s in self.client_socks:
+            msg = self.recv_msg_udp_server(self.client_socks[s], 'MSG_TRAINING_TIME_PER_ITERATION')
+        return msg
 
     def _thread_network_testing(self, client_ip):
         msg = ['MSG_TEST_NETWORK', self.uninet.cpu().state_dict()]

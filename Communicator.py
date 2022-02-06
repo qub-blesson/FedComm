@@ -42,6 +42,10 @@ class Communicator(object):
             self.handle_weights(sock, address, msg)
         sock.sendto(b"END", address)
 
+    def send_msg_udp_client(self, sock, address, msg):
+        sock.sendto(msg, address)
+        sock.sendto(b"END", address)
+
     def handle_weights(self, sock, address, msg):
         send_buffers = [param for param in msg[1].values()]
         for i in range(len(send_buffers)):
@@ -80,11 +84,11 @@ class Communicator(object):
         except Exception:
             pass
 
-        #if expect_msg_type is not None:
-            #if msg[0] == 'Finish':
-                #return msg
-            #elif msg[0] != expect_msg_type:
-                #raise Exception("Expected " + expect_msg_type + " but received " + msg[0])
+        # if expect_msg_type is not None:
+        # if msg[0] == 'Finish':
+        # return msg
+        # elif msg[0] != expect_msg_type:
+        # raise Exception("Expected " + expect_msg_type + " but received " + msg[0])
 
         return buffer
 
@@ -94,7 +98,7 @@ class Communicator(object):
         count = 0
 
         while read_next:
-            try :
+            try:
                 msg, address = sock.recvfrom(4096)
             except:
                 break
@@ -127,3 +131,28 @@ class Communicator(object):
             pass
 
         return ip
+
+    def recv_msg_udp_server(self, sock, expect_msg_type=None):
+        read_next = True
+        count = 0
+        msg = []
+
+        while read_next:
+            try:
+                msg, address = sock.recvfrom(4096)
+            except:
+                break
+            if msg == b"END":
+                count += 1
+                sock.settimeout(2)
+                if count == 4:
+                    break
+                continue
+            try:
+                msg.append(pickle.loads(msg))
+            except:
+                continue
+
+        self.packets_received += len(msg)
+        sock.settimeout(None)
+        return msg

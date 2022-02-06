@@ -69,12 +69,12 @@ class Client(Communicator):
                 loss.backward()
                 self.optimizer.step()
 
-        else:  # Offloading training
-            pass
-
         e_time_total = time.time()
 
-        return e_time_total - s_time_total
+        msg = ['MSG_TRAINING_TIME_PER_ITERATION', self.ip, e_time_total - s_time_total]
+        self.send_msg_udp_client(self.sock, (self.server_addr, self.server_port), msg)
+
+        return
 
     def upload(self):
         msg = ['MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER', self.net.cpu().state_dict()]
