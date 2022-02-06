@@ -43,7 +43,7 @@ class Communicator(object):
         sock.sendto(b"END", address)
 
     def send_msg_udp_client(self, sock, address, msg):
-        sock.sendto(msg[1], address)
+        self.pickle_send_udp(msg[1], address, sock)
         sock.sendto(b"END", address)
 
     def handle_weights(self, sock, address, msg):
