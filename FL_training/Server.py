@@ -96,10 +96,10 @@ class Server(Communicator):
                 logger.info(str(client_ips[i]) + ' no offloading training start')
 
         msg = []
-        self.ttpi = {}
+        ttpi = {}
         for s in self.client_socks:
-            msg = self.recv_msg_tcp_server(self.client_socks[s], 'MSG_TRAINING_TIME_PER_ITERATION')
-            self.ttpi[msg[1]] = msg[2]
+            msg = self.recv_msg_tcp(self.client_socks[s], 'MSG_TRAINING_TIME_PER_ITERATION')
+            ttpi[msg[1]] = msg[2]
         return msg
 
     def _thread_network_testing(self, client_ip):

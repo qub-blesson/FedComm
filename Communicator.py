@@ -144,28 +144,3 @@ class Communicator(object):
             pass
 
         return ip
-
-    def recv_msg_tcp_server(self, sock, expect_msg_type=None):
-        read_next = True
-        count = 0
-        msg = []
-
-        while read_next:
-            try:
-                msg, address = sock.recvfrom(4096)
-            except:
-                break
-            if msg == b"END":
-                count += 1
-                sock.settimeout(2)
-                if count == 4:
-                    break
-                continue
-            try:
-                msg.append(pickle.loads(msg))
-            except:
-                continue
-
-        self.packets_received += len(msg)
-        sock.settimeout(None)
-        return msg
