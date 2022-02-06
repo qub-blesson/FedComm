@@ -32,6 +32,7 @@ class Communicator(object):
         self.sock = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
         self.packets_sent = 0
         self.packets_received = 0
+        self.tcp_sock = socket.socket()
 
     # UDP Functionality
     def send_msg_udp(self, sock, address, msg):
@@ -42,9 +43,23 @@ class Communicator(object):
             self.handle_weights(sock, address, msg)
         sock.sendto(b"END", address)
 
-    def send_msg_udp_client(self, sock, address, msg):
-        self.pickle_send_udp(msg[1], address, sock)
-        sock.sendto(b"END", address)
+    def send_msg_tcp_client(self, sock, msg):
+        msg_pickle = pickle.dumps(msg)
+        sock.sendall(struct.pack(">I", len(msg_pickle)))
+        sock.sendall(msg_pickle)
+
+    def recv_msg_tcp(self, sock, expect_msg_type=None):
+        msg_len = struct.unpack(">I", sock.recv(4))[0]
+        msg = sock.recv(msg_len, socket.MSG_WAITALL)
+        msg = pickle.loads(msg)
+        logger.debug(msg[0] + 'received from' + str(sock.getpeername()[0]) + ':' + str(sock.getpeername()[1]))
+
+        if expect_msg_type is not None:
+            if msg[0] == 'Finish':
+                return msg
+            elif msg[0] != expect_msg_type:
+                raise Exception("Expected " + expect_msg_type + " but received " + msg[0])
+        return msg
 
     def handle_weights(self, sock, address, msg):
         send_buffers = [param for param in msg[1].values()]
@@ -132,7 +147,7 @@ class Communicator(object):
 
         return ip
 
-    def recv_msg_udp_server(self, sock, expect_msg_type=None):
+    def recv_msg_tcp_server(self, sock, expect_msg_type=None):
         read_next = True
         count = 0
         msg = []

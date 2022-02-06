@@ -34,11 +34,16 @@ class Server(Communicator):
         self.model_name = model_name
 
         self.sock.bind((self.ip, self.port))
+        self.tcp_sock.bind((self.ip, self.port))
         self.client_socks = {}
+
         while len(self.client_socks) < config.K:
-            msg = self.init_recv_msg_udp(self.sock)
-            logger.info('Got connection from ' + str(msg[0]))
-            self.client_socks[str(msg[0])] = (msg[0], msg[1])
+            self.tcp_sock.listen(5)
+            logger.info("Waiting Incoming Connections.")
+            (client_sock, (ip, port)) = self.tcp_sock.accept()
+            logger.info('Got connection from ' + str(ip))
+            logger.info(client_sock)
+            self.client_socks[str(ip)] = client_sock
 
         self.uninet = utils.get_model('Unit', self.model_name, config.model_len - 1, self.device, config.model_cfg)
 
@@ -87,8 +92,10 @@ class Server(Communicator):
                 logger.info(str(client_ips[i]) + ' no offloading training start')
 
         msg = []
+        self.ttpi = {}
         for s in self.client_socks:
-            msg = self.recv_msg_udp_server(self.sock, 'MSG_TRAINING_TIME_PER_ITERATION')
+            msg = self.recv_msg_tcp_server(self.client_socks[s], 'MSG_TRAINING_TIME_PER_ITERATION')
+            self.ttpi[msg[1]] = msg[2]
         return msg
 
     def _thread_network_testing(self, client_ip):
