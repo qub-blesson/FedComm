@@ -36,6 +36,7 @@ class Server(Communicator):
         self.sock.bind((self.ip, self.port+1))
         self.tcp_sock.bind((self.ip, self.port))
         self.client_socks = {}
+        self.client_ip = {}
 
         while len(self.client_socks) < config.K:
             self.tcp_sock.listen(5)
@@ -44,6 +45,7 @@ class Server(Communicator):
             logger.info('Got connection from ' + str(ip))
             logger.info(client_sock)
             self.client_socks[str(ip)] = client_sock
+            self.client_ip[str(ip)] = ip
 
         self.uninet = utils.get_model('Unit', self.model_name, config.model_len - 1, self.device, config.model_cfg)
 
