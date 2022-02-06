@@ -72,7 +72,7 @@ class Client(Communicator):
 
         e_time_total = time.time()
 
-        msg = ['MSG_TRAINING_TIME_PER_ITERATION', e_time_total - s_time_total]
+        msg = ['MSG_TRAINING_TIME_PER_ITERATION', self.ip, e_time_total - s_time_total]
         self.send_msg_tcp_client(self.tcp_sock, msg)
 
         return

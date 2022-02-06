@@ -48,7 +48,7 @@ else:
     logger.info('Classic FL Training')
 
 res = {}
-res['trianing_time'], res['test_acc_record'], res['bandwidth_record'], res['communication_time'] = [], [], [], []
+res['trianing_time'], res['test_acc_record'], res['communication_time'] = [], [], []
 
 for r in range(config.R):
     logger.info('====================================>')
@@ -74,7 +74,8 @@ for r in range(config.R):
         pickle.dump(res, f)
 
     logger.info('Round Finish')
-    logger.info('==> Round Training Time: {:}'.format(trianing_time))
+    logger.info('==> Round Training Computation Time: {:}'.format(comp_time))
+    logger.info('==> Round Training Communication Time: {:}'.format(trianing_time - comp_time))
 
     logger.info('==> Reinitialization for Round : {:}'.format(r + 1))
 
