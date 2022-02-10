@@ -62,12 +62,6 @@ for r in range(config.R):
     # Recording each round training time, bandwidth and test accuracy
     trianing_time = e_time - s_time
     res['trianing_time'].append(trianing_time)
-    #comp_time = 0
-    #for i in state:
-        #comp_time += state[i]
-    #comp_time /= len(state)
-    #logger.info(comp_time)
-    #res['communication_time'].append(trianing_time - comp_time)
     test_acc = server.test(r)
     res['test_acc_record'].append(test_acc)
 
@@ -85,7 +79,12 @@ for r in range(config.R):
 
     server.reinitialize(config.split_layer, offload, first, LR)
     logger.info('==> Reinitialization Finish')
-comm_time = server.finish(config.CLIENTS_LIST)
-res['communication_time'].append(comm_time)
+comm_time = server.finish()
+comp_time = 0
+for i in state:
+    comp_time += state[i]
+    comp_time /= len(state)
+    logger.info(comp_time)
+    res['communication_time'].append(res['trianing_time'][i] - comp_time)
 with open('../results/FedAdapt_res.pkl', 'wb') as f:
     pickle.dump(res, f)

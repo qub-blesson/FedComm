@@ -32,7 +32,7 @@ class Communicator(object):
         self.sock = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
         self.packets_sent = 0
         self.packets_received = 0
-        # self.tcp_sock = socket.socket()
+        self.tcp_sock = socket.socket()
 
     # UDP Functionality
     def send_msg_udp(self, sock, address, msg):

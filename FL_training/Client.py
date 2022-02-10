@@ -28,10 +28,10 @@ class Client(Communicator):
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.model_name = model_name
         self.uninet = utils.get_model('Unit', self.model_name, config.model_len - 1, self.device, config.model_cfg)
-        # self.tcp_sock.connect((server_addr, server_port))
         self.send_msg_udp(self.sock, (server_addr, server_port+1), b'')
         self.server_addr = server_addr
         self.server_port = server_port
+        self.computation_time = ['MSG_TRAINING_TIME_PER_ITERATION', self.ip]
 
     def initialize(self, split_layer, offload, first, LR):
         if offload or first:
@@ -70,11 +70,7 @@ class Client(Communicator):
                 loss.backward()
                 self.optimizer.step()
 
-        e_time_total = time.time()
-
-        # msg = ['MSG_TRAINING_TIME_PER_ITERATION', self.ip, e_time_total - s_time_total]
-        # self.send_msg_tcp_client(self.tcp_sock, msg)
-
+        self.computation_time.append(time.time()-s_time_total)
         return
 
     def upload(self):
@@ -86,5 +82,5 @@ class Client(Communicator):
 
     def finish(self):
         logger.info(self.packets_sent)
-        msg = ['MSG_COMMUNICATION_TIME', config.comm_time]
-        self.send_msg_udp(self.sock, (self.server_addr, self.server_port), msg)
+        self.tcp_sock.connect((self.server_addr, self.server_port))
+        self.send_msg_tcp_client(self.tcp_sock, msg)

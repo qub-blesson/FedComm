@@ -34,16 +34,11 @@ class Server(Communicator):
         self.model_name = model_name
 
         self.sock.bind((self.ip, self.port+1))
-        # self.tcp_sock.bind((self.ip, self.port))
+        self.tcp_sock.bind((self.ip, self.port))
         self.client_socks = {}
         self.client_ip = {}
 
-        # logger.info("Waiting Incoming Connections.")
-        # while len(self.client_socks) < config.K:
-            # self.tcp_sock.listen(5)
-            # (client_sock, (ip, port)) = self.tcp_sock.accept()
-            # self.client_socks[str(ip)] = client_sock
-
+        logger.info("Waiting Incoming Connections.")
         while len(self.client_ip) < config.K:
             msg = self.init_recv_msg_udp(self.sock)
             logger.info('Got connection from ' + str(msg[0]))
@@ -95,11 +90,7 @@ class Server(Communicator):
             if config.split_layer[i] == (config.model_len - 1):
                 logger.info(str(client_ips[i]) + ' no offloading training start')
 
-        ttpi = {}
-        # for s in self.client_socks:
-            # msg = self.recv_msg_tcp(self.client_socks[s], 'MSG_TRAINING_TIME_PER_ITERATION')
-            # ttpi[msg[1]] = msg[2]
-        return ttpi
+        return
 
     def _thread_network_testing(self, client_ip):
         msg = ['MSG_TEST_NETWORK', self.uninet.cpu().state_dict()]
@@ -242,9 +233,12 @@ class Server(Communicator):
         for i in self.client_socks:
             self.send_msg_udp(self.sock, self.client_socks[i], msg)
 
-    def finish(self, client_ips):
-        logger.info(self.packets_received)
-        msg = []
-        for i in range(len(client_ips)):
-            msg.append(self.recv_msg_udp(self.sock, 'MSG_COMMUNICATION_TIME')[1])
-        return max(msg)
+    def finish(self):
+        while len(self.client_socks) < config.K:
+            self.tcp_sock.listen(5)
+            (client_sock, (ip, port)) = self.tcp_sock.accept()
+            self.client_socks[str(ip)] = client_sock
+        ttpi = {}
+        for s in self.client_socks:
+            msg = self.recv_msg_tcp(self.client_socks[s], 'MSG_TRAINING_TIME_PER_ITERATION')
+            ttpi[msg[1]] = msg[2:]
