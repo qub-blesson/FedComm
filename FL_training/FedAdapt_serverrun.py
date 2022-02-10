@@ -2,6 +2,7 @@ import time
 import torch
 import pickle
 import argparse
+import numpy as np
 
 import logging
 
@@ -55,7 +56,7 @@ for r in range(config.R):
     logger.info('==> Round {:} Start'.format(r))
 
     s_time = time.time()
-    state = server.train(thread_number=config.K, client_ips=config.CLIENTS_LIST)
+    server.train(thread_number=config.K, client_ips=config.CLIENTS_LIST)
     aggregrated_model = server.aggregate(config.CLIENTS_LIST)
     e_time = time.time()
 
@@ -69,8 +70,7 @@ for r in range(config.R):
         pickle.dump(res, f)
 
     logger.info('Round Finish')
-    logger.info('==> Round Training Computation Time: {:}'.format(comp_time))
-    logger.info('==> Round Training Communication Time: {:}'.format(trianing_time - comp_time))
+    logger.info('==> Round Training Time: {:}'.format(trianing_time))
 
     logger.info('==> Reinitialization for Round : {:}'.format(r + 1))
 
@@ -79,12 +79,13 @@ for r in range(config.R):
 
     server.reinitialize(config.split_layer, offload, first, LR)
     logger.info('==> Reinitialization Finish')
-comm_time = server.finish()
-comp_time = 0
+state = server.finish()
+comp_time = np.array([0, 0, 0, 0, 0])
+
 for i in state:
-    comp_time += state[i]
-    comp_time /= len(state)
-    logger.info(comp_time)
+    comp_time = np.add(comp_time, state[i])
+comp_time /= 4
+for i in range(config.K):
     res['communication_time'].append(res['trianing_time'][i] - comp_time)
 with open('../results/FedAdapt_res.pkl', 'wb') as f:
     pickle.dump(res, f)
