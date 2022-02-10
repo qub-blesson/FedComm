@@ -28,7 +28,7 @@ class Client(Communicator):
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.model_name = model_name
         self.uninet = utils.get_model('Unit', self.model_name, config.model_len - 1, self.device, config.model_cfg)
-        self.tcp_sock.connect((server_addr, server_port))
+        # self.tcp_sock.connect((server_addr, server_port))
         self.send_msg_udp(self.sock, (server_addr, server_port+1), b'')
         self.server_addr = server_addr
         self.server_port = server_port
@@ -72,8 +72,8 @@ class Client(Communicator):
 
         e_time_total = time.time()
 
-        msg = ['MSG_TRAINING_TIME_PER_ITERATION', self.ip, e_time_total - s_time_total]
-        self.send_msg_tcp_client(self.tcp_sock, msg)
+        # msg = ['MSG_TRAINING_TIME_PER_ITERATION', self.ip, e_time_total - s_time_total]
+        # self.send_msg_tcp_client(self.tcp_sock, msg)
 
         return
 
