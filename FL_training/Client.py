@@ -83,4 +83,4 @@ class Client(Communicator):
     def finish(self):
         logger.info(self.packets_sent)
         self.tcp_sock.connect((self.server_addr, self.server_port))
-        self.send_msg_tcp_client(self.tcp_sock, msg)
+        self.send_msg_tcp_client(self.tcp_sock, self.computation_time)
