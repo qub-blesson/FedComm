@@ -38,6 +38,11 @@ class Server(Communicator):
         self.client_socks = {}
         self.client_ip = {}
 
+        while len(self.client_socks) < config.K:
+            self.tcp_sock.listen(5)
+            (client_sock, (ip, port)) = self.tcp_sock.accept()
+            self.client_socks[str(ip)] = client_sock
+
         logger.info("Waiting Incoming Connections.")
         while len(self.client_ip) < config.K:
             msg = self.init_recv_msg_udp(self.sock)
@@ -234,10 +239,6 @@ class Server(Communicator):
             self.send_msg_udp(self.sock, self.client_socks[i], msg)
 
     def finish(self):
-        while len(self.client_socks) < config.K:
-            self.tcp_sock.listen(5)
-            (client_sock, (ip, port)) = self.tcp_sock.accept()
-            self.client_socks[str(ip)] = client_sock
         ttpi = {}
         logger.info(self.packets_received)
         for s in self.client_socks:
