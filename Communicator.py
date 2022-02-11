@@ -52,7 +52,7 @@ class Communicator(object):
             # Create connection to AMQP server
             self.credentials = pika.PlainCredentials(user, password)
             self.connection = pika.BlockingConnection(pika.ConnectionParameters(
-                host=host, port=port, credentials=self.credentials))
+                host=host, port=port, credentials=self.credentials, heartbeat=600, blocked_connection_timeout=300))
             self.pub_topic = pub_topic
             self.sub_topic = sub_topic
             # Create pub channel

@@ -81,10 +81,8 @@ for r in range(config.R):
     logger.info('==> Round Training Communication Time: {:}'.format(trianing_time - comp_time))
 
     logger.info('==> Reinitialization for Round : {:}'.format(r + 1))
-    if offload:
-        split_layers = server.adaptive_offload(agent, state)
-    else:
-        split_layers = config.split_layer
+
+    split_layers = config.split_layer
 
     if r > 49:
         LR = config.LR * 0.1
