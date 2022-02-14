@@ -34,8 +34,6 @@ class Communicator(object):
         self.packets_received = 0
         self.tcp_sock = socket.socket()
         self.end_msg = False
-        self.thread = threading.Thread(target=self.recv_end)
-        self.thread.start()
 
     # UDP Functionality
     def send_msg_udp(self, sock, tcp_sock, address, msg):
@@ -46,16 +44,16 @@ class Communicator(object):
             self.handle_weights(sock, address, msg)
         tcp_sock.sendall(b'END')
 
-    def recv_end(self, sock):
+    def recv_end(self, socks):
         recv_count = 0
         read_next = True
         while read_next:
-            msg = sock.recv(10, socket.MSG_WAITALL)
-            if msg == b'END':
-                recv_count += 1
-            if recv_count == 4:
-                self.end_msg = True
-                recv_count = 0
+            for s in socks:
+                msg = socks[s].recv(10, socket.MSG_WAITALL)
+                if msg == b'END':
+                    recv_count += 1
+            self.end_msg = True
+            recv_count = 0
 
     def send_msg_tcp_client(self, sock, msg):
         msg_pickle = pickle.dumps(msg)

@@ -43,6 +43,9 @@ class Server(Communicator):
             (client_sock, (ip, port)) = self.tcp_sock.accept()
             self.client_socks[str(ip)] = client_sock
 
+        self.thread = threading.Thread(target=self.recv_end, args=[self.client_socks])
+        self.thread.start()
+
         logger.info("Waiting Incoming Connections.")
         while len(self.client_ip) < config.K:
             msg = self.init_recv_msg_udp(self.sock)
