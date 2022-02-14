@@ -45,6 +45,7 @@ class Communicator(object):
             self.handle_weights(sock, address, msg)
             tcp_sock.sendall(struct.pack(">I", len(b'END')))
             tcp_sock.sendall(b'END')
+            self.packets_sent += 2
 
     def recv_end(self, socks):
         global end_msg
@@ -123,12 +124,13 @@ class Communicator(object):
         global end_msg
 
         while read_next:
-            msg, address = sock.recvfrom(4096)
-            sock.settimeout(5)
             try:
-                agg_dict[address[0]].append(pickle.loads(msg))
+                msg, address = sock.recvfrom(4096)
+                sock.settimeout(5)
             except:
-                continue
+                pass
+            if msg is not None:
+                agg_dict[address[0]].append(pickle.loads(msg))
             if end_msg:
                 end_msg = False
                 break
