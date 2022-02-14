@@ -40,10 +40,11 @@ class Communicator(object):
         if msg == b'':
             sock.sendto(b'', address)
             self.packets_sent += 1
+            sock.sendto(b"END", address)
         else:
             self.handle_weights(sock, address, msg)
-        tcp_sock.sendall(struct.pack(">I", len(b'END')))
-        tcp_sock.sendall(b'END')
+            tcp_sock.sendall(struct.pack(">I", len(b'END')))
+            tcp_sock.sendall(b'END')
 
     def recv_end(self, socks):
         global end_msg
@@ -123,7 +124,7 @@ class Communicator(object):
 
         while read_next:
             msg, address = sock.recvfrom(4096)
-            self.sock.settimeout(5)
+            sock.settimeout(5)
             try:
                 agg_dict[address[0]].append(pickle.loads(msg))
             except:
@@ -138,20 +139,15 @@ class Communicator(object):
         return agg_dict
 
     def init_recv_msg_udp(self, sock):
-        global end_msg
         read_next = True
-        ips = []
+        ip = None
         try:
             while read_next:
                 (msg, ip) = sock.recvfrom(4096)
-                sock.settimeout(3)
-                ips.append(ip)
                 self.packets_received += 1
-                if end_msg:
-                    end_msg = False
+                if msg == b"END":
                     break
         except Exception:
             pass
 
-        sock.settimeout(None)
-        return ips
+        return ip

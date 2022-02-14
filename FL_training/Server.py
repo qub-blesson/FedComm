@@ -49,8 +49,8 @@ class Server(Communicator):
         logger.info("Waiting Incoming Connections.")
         msg = self.init_recv_msg_udp(self.sock)
         for i in msg:
-            logger.info('Got connection from ' + str(msg[i]))
-            self.client_ip[str(msg[i][0])] = (msg[i][0], msg[i][1])
+            logger.info('Got connection from ' + str(i[0]))
+            self.client_ip[str(msg[i][0])] = (i[0], i[1])
 
         self.uninet = utils.get_model('Unit', self.model_name, config.model_len - 1, self.device, config.model_cfg)
 
