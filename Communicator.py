@@ -19,6 +19,7 @@ import config
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+end_msg = False
 
 
 class Communicator(object):
@@ -33,7 +34,6 @@ class Communicator(object):
         self.packets_sent = 0
         self.packets_received = 0
         self.tcp_sock = socket.socket()
-        self.end_msg = False
 
     # UDP Functionality
     def send_msg_udp(self, sock, tcp_sock, address, msg):
@@ -45,15 +45,12 @@ class Communicator(object):
         tcp_sock.sendall(b'END')
 
     def recv_end(self, socks):
-        recv_count = 0
+        global end_msg
         read_next = True
         while read_next:
             for s in socks:
-                msg = socks[s].recv(10, socket.MSG_WAITALL)
-                if msg == b'END':
-                    recv_count += 1
-            self.end_msg = True
-            recv_count = 0
+                socks[s].recv(10, socket.MSG_WAITALL)
+            end_msg = True
 
     def send_msg_tcp_client(self, sock, msg):
         msg_pickle = pickle.dumps(msg)
@@ -120,6 +117,7 @@ class Communicator(object):
     def recv_msg_udp_agg(self, sock, expect_msg_type=None):
         agg_dict = {'192.168.101.116': [], '192.168.101.217': [], '192.168.101.218': [], '192.168.101.219': []}
         read_next = True
+        global end_msg
 
         while read_next:
             msg, address = sock.recvfrom(4096)
@@ -128,8 +126,8 @@ class Communicator(object):
                 agg_dict[address[0]].append(pickle.loads(msg))
             except:
                 continue
-            if self.end_msg:
-                self.end_msg = False
+            if end_msg:
+                end_msg = False
                 break
 
         for key in agg_dict:
@@ -138,15 +136,18 @@ class Communicator(object):
         return agg_dict
 
     def init_recv_msg_udp(self, sock):
+        global end_msg
         read_next = True
-        ip = None
+        ips = []
         try:
             while read_next:
                 (msg, ip) = sock.recvfrom(4096)
+                ips.append(ip)
                 self.packets_received += 1
-                if msg == b"END":
+                if end_msg:
+                    end_msg = False
                     break
         except Exception:
             pass
 
-        return ip
+        return ips

@@ -47,10 +47,10 @@ class Server(Communicator):
         self.thread.start()
 
         logger.info("Waiting Incoming Connections.")
-        while len(self.client_ip) < config.K:
-            msg = self.init_recv_msg_udp(self.sock)
-            logger.info('Got connection from ' + str(msg[0]))
-            self.client_ip[str(msg[0])] = (msg[0], msg[1])
+        msg = self.init_recv_msg_udp(self.sock)
+        for i in msg:
+            logger.info('Got connection from ' + str(msg[i]))
+            self.client_ip[str(msg[i][0])] = (msg[i][0], msg[i][1])
 
         self.uninet = utils.get_model('Unit', self.model_name, config.model_len - 1, self.device, config.model_cfg)
 
