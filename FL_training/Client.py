@@ -28,7 +28,7 @@ class Client(Communicator):
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.model_name = model_name
         self.uninet = utils.get_model('Unit', self.model_name, config.model_len - 1, self.device, config.model_cfg)
-        self.send_msg_udp(self.sock, (server_addr, server_port+1), b'')
+        self.send_msg_udp(self.sock, self.tcp_sock, (server_addr, server_port+1), b'')
         self.server_addr = server_addr
         self.server_port = server_port
         self.computation_time = ['MSG_TRAINING_TIME_PER_ITERATION', self.ip]
@@ -76,7 +76,7 @@ class Client(Communicator):
 
     def upload(self):
         msg = ['MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER', self.net.cpu().state_dict()]
-        self.send_msg_udp(self.sock, (self.server_addr, self.server_port+1), msg)
+        self.send_msg_udp(self.sock, self.tcp_sock, (self.server_addr, self.server_port+1), msg)
 
     def reinitialize(self, split_layers, offload, first, LR):
         self.initialize(split_layers, offload, first, LR)

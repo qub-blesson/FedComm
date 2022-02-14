@@ -33,15 +33,29 @@ class Communicator(object):
         self.packets_sent = 0
         self.packets_received = 0
         self.tcp_sock = socket.socket()
+        self.end_msg = False
+        self.thread = threading.Thread(target=self.recv_end)
+        self.thread.start()
 
     # UDP Functionality
-    def send_msg_udp(self, sock, address, msg):
+    def send_msg_udp(self, sock, tcp_sock, address, msg):
         if msg == b'':
             sock.sendto(b'', address)
             self.packets_sent += 1
         else:
             self.handle_weights(sock, address, msg)
-        sock.sendto(b"END", address)
+        tcp_sock.sendall(b'END')
+
+    def recv_end(self, sock):
+        recv_count = 0
+        read_next = True
+        while read_next:
+            msg = sock.recv(10, socket.MSG_WAITALL)
+            if msg == b'END':
+                recv_count += 1
+            if recv_count == 4:
+                self.end_msg = True
+                recv_count = 0
 
     def send_msg_tcp_client(self, sock, msg):
         msg_pickle = pickle.dumps(msg)
@@ -108,23 +122,17 @@ class Communicator(object):
     def recv_msg_udp_agg(self, sock, expect_msg_type=None):
         agg_dict = {'192.168.101.116': [], '192.168.101.217': [], '192.168.101.218': [], '192.168.101.219': []}
         read_next = True
-        count = 0
 
         while read_next:
-            try:
-                msg, address = sock.recvfrom(4096)
-            except:
-                break
-            if msg == b"END":
-                count += 1
-                sock.settimeout(2)
-                if count == 4:
-                    break
-                continue
+            msg, address = sock.recvfrom(4096)
+            self.sock.settimeout(5)
             try:
                 agg_dict[address[0]].append(pickle.loads(msg))
             except:
                 continue
+            if self.end_msg:
+                self.end_msg = False
+                break
 
         for key in agg_dict:
             self.packets_received += len(agg_dict[key])
