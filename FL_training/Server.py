@@ -89,7 +89,7 @@ class Server(Communicator):
 
         msg = ['MSG_INITIAL_GLOBAL_WEIGHTS_SERVER_TO_CLIENT', self.uninet.state_dict()]
         for i in self.client_ip:
-            self.send_msg_udp(self.sock, self.client_ip[i], msg)
+            self.send_msg_udp(self.sock, self.client_socks[i], self.client_ip[i], msg)
 
     def train(self, thread_number, client_ips):
         # Training start

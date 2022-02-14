@@ -98,8 +98,7 @@ class Communicator(object):
         try:
             while read_next:
                 msg, address = sock.recvfrom(self.MAX_BUFFER_SIZE)
-                if msg == b"END":
-                    break
+                sock.settimeout(2)
                 try:
                     buffer.append(pickle.loads(msg))
                 except:
@@ -114,6 +113,7 @@ class Communicator(object):
         # elif msg[0] != expect_msg_type:
         # raise Exception("Expected " + expect_msg_type + " but received " + msg[0])
 
+        sock.settimeout(None)
         return buffer
 
     def recv_msg_udp_agg(self, sock, expect_msg_type=None):
@@ -144,6 +144,7 @@ class Communicator(object):
         try:
             while read_next:
                 (msg, ip) = sock.recvfrom(4096)
+                sock.settimeout(3)
                 ips.append(ip)
                 self.packets_received += 1
                 if end_msg:
@@ -152,4 +153,5 @@ class Communicator(object):
         except Exception:
             pass
 
+        sock.settimeout(None)
         return ips
