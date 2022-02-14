@@ -42,6 +42,7 @@ class Communicator(object):
             self.packets_sent += 1
         else:
             self.handle_weights(sock, address, msg)
+        tcp_sock.sendall(struct.pack(">I", len(b'END')))
         tcp_sock.sendall(b'END')
 
     def recv_end(self, socks):
@@ -49,7 +50,8 @@ class Communicator(object):
         read_next = True
         while read_next:
             for s in socks:
-                socks[s].recv(10, socket.MSG_WAITALL)
+                msg_len = struct.unpack(">I", socks[s].recv(4))[0]
+                socks[s].recv(msg_len, socket.MSG_WAITALL)
             end_msg = True
 
     def send_msg_tcp_client(self, sock, msg):

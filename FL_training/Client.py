@@ -33,7 +33,6 @@ class Client(Communicator):
         self.server_addr = server_addr
         self.server_port = server_port
         self.computation_time = ['MSG_TRAINING_TIME_PER_ITERATION', self.ip]
-        self.tcp_sock.connect((self.server_addr, self.server_port))
 
     def initialize(self, split_layer, offload, first, LR):
         if offload or first:
