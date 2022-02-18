@@ -6,6 +6,7 @@ import socket
 
 import logging
 import sys
+import numpy as np
 import torch
 
 import pika
@@ -34,6 +35,7 @@ class Communicator(object):
         self.packets_sent = 0
         self.packets_received = 0
         self.tcp_sock = socket.socket()
+        self.ttpi = {}
 
     # UDP Functionality
     def send_msg_udp(self, sock, tcp_sock, address, msg):
@@ -53,7 +55,9 @@ class Communicator(object):
         while read_next:
             for s in socks:
                 msg_len = struct.unpack(">I", socks[s].recv(4))[0]
-                socks[s].recv(msg_len, socket.MSG_WAITALL)
+                msg = socks[s].recv(msg_len, socket.MSG_WAITALL)
+                if msg != b'end':
+                    self.ttpi[msg[1]] = np.array(msg[2:])
             end_msg = True
 
     def send_msg_tcp_client(self, sock, msg):

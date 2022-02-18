@@ -70,3 +70,5 @@ for r in range(config.R):
 	logger.info('Rebuild time: ' + str(e_time_rebuild - s_time_rebuild))
 	logger.info('==> Reinitialization Finish')
 client.finish()
+while True:
+	pass

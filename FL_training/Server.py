@@ -242,10 +242,4 @@ class Server(Communicator):
             self.send_msg_udp(self.sock, self.client_socks[i], msg)
 
     def finish(self):
-        ttpi = {}
-        logger.info(self.packets_received)
-        for s in self.client_socks:
-            msg = self.recv_msg_tcp(self.client_socks[s], 'MSG_TRAINING_TIME_PER_ITERATION')
-            ttpi[msg[1]] = np.array(msg[2:])
-
-        return ttpi
+        return self.ttpi
