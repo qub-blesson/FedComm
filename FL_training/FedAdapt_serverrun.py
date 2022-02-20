@@ -86,6 +86,6 @@ for i in state:
     comp_time = np.add(comp_time, state[i])
 comp_time /= 4
 for i in range(config.K):
-    res['communication_time'].append(res['trianing_time'][i] - comp_time)
+    res['communication_time'].append(res['trianing_time'][i] - comp_time[i])
 with open('../results/FedAdapt_res.pkl', 'wb') as f:
     pickle.dump(res, f)

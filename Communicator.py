@@ -56,7 +56,8 @@ class Communicator(object):
             for s in socks:
                 msg_len = struct.unpack(">I", socks[s].recv(4))[0]
                 msg = socks[s].recv(msg_len, socket.MSG_WAITALL)
-                if msg != b'end':
+                if msg != b'END':
+                    msg = pickle.loads(msg)
                     self.ttpi[msg[1]] = np.array(msg[2:])
             end_msg = True
 
