@@ -112,6 +112,7 @@ class Server(Communicator):
 
     def aggregate(self, client_ips):
         w_local_list = []
+        start = time.time()
         msg = self.recv_msg_udp_agg(self.sock, 'MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER')
         for weight in msg:
             weights = utils.concat_weights_client(msg[weight], self.uninet.state_dict())
@@ -119,6 +120,7 @@ class Server(Communicator):
             w_local_list.append(w_local)
         zero_model = utils.zero_init(self.uninet).state_dict()
         aggregrated_model = utils.fed_avg(zero_model, w_local_list, config.N)
+        logger.info(time.time() - start)
 
         self.uninet.load_state_dict(aggregrated_model)
         return aggregrated_model
@@ -244,4 +246,5 @@ class Server(Communicator):
     def finish(self):
         while len(self.ttpi) < 4:
             pass
+        logger.info(self.packets_received)
         return self.ttpi
