@@ -29,7 +29,7 @@ split_layer = config.split_layer[index]
 LR = config.LR
 
 logger.info('Preparing Client')
-client = Client(index, ip_address, config.SERVER_ADDR, config.SERVER_PORT, datalen, 'VGG8', split_layer)
+client = Client(index, ip_address, config.SERVER_ADDR, config.SERVER_PORT, datalen, 'VGG5', split_layer)
 
 offload = args.offload
 first = True # First initializaiton control

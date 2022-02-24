@@ -30,9 +30,9 @@ first = True  # First initializaiton control
 logger.info('Preparing Sever.')
 
 if communicator == 'TCP':
-    server = Server(0, config.SERVER_ADDR, config.SERVER_PORT, 'VGG8')
+    server = Server(0, config.SERVER_ADDR, config.SERVER_PORT, 'VGG5')
 elif communicator == 'MQTT' or communicator == 'AMQP':
-    server = Server(config.K, config.SERVER_ADDR, config.SERVER_PORT, 'VGG8')
+    server = Server(config.K, config.SERVER_ADDR, config.SERVER_PORT, 'VGG5')
 server.initialize(config.split_layer, offload, first, LR)
 first = False
 
