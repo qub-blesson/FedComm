@@ -114,7 +114,7 @@ def concat_weights_client(weights, sweights):
         if concat_dict[key][0].numel() == 1:
             concat_dict[key] = concat_dict[key][0]
             continue
-        if torch.cat(concat_dict[key]).size()[0] < sweights[key].size():
+        if torch.cat(concat_dict[key]).size()[0] < sweights[key].numel():
             concat_dict[key].append(torch.from_numpy(np.zeros((sweights[key].numel()) - torch.cat(concat_dict[key]).size()[0])))
         concat_dict[key] = torch.cat(concat_dict[key])
         if concat_dict[key].size()[0] > sweights[key].numel():
