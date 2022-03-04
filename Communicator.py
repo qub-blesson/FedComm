@@ -6,6 +6,7 @@ from queue import Queue
 import logging
 from coapthon.client.helperclient import HelperClient
 from coapthon.messages.request import Request
+from coapthon.messages.response import Response
 from coapthon import defines
 from coapthon.resources.resource import Resource
 from coapthon.server.coap import CoAP
@@ -29,6 +30,8 @@ class Communicator(object):
         else:
             server = CoAPServer(host, port)
             try:
+                response = Response()
+                response.payload = 'model being returned'
                 server.listen(100)
             except KeyboardInterrupt:
                 print("Server shutting down")
@@ -37,15 +40,7 @@ class Communicator(object):
     def send_msg(self, payload):
         payload = pickle.dumps(payload)
         response = self.client.get('test')
-        #request = Request()
-        #request.code = defines.Codes.GET.number
-        #request.type = defines.Types['CON']
-        #request.destination = (self.host, self.port)
-        #request.uri_path = self.path
-        #request.content_type = defines.Content_types["application/xml"]
-        #request.payload = payload
-        #response = self.client.send_request(request)
-        #print(response)
+        print(response)
 
 class CoAPServer(CoAP):
     def __init__(self, host, port):
