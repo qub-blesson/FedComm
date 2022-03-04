@@ -36,15 +36,16 @@ class Communicator(object):
 
     def send_msg(self, payload):
         payload = pickle.dumps(payload)
-        request = Request()
-        request.code = defines.Codes.GET.number
-        request.type = defines.Types['NON']
-        request.destination = (self.host, self.port)
-        request.uri_path = self.path
-        request.content_type = defines.Content_types["application/xml"]
-        request.payload = payload
-        response = self.client.send_request(request)
-        print(response)
+        response = self.client.get('test')
+        #request = Request()
+        #request.code = defines.Codes.GET.number
+        #request.type = defines.Types['CON']
+        #request.destination = (self.host, self.port)
+        #request.uri_path = self.path
+        #request.content_type = defines.Content_types["application/xml"]
+        #request.payload = payload
+        #response = self.client.send_request(request)
+        #print(response)
 
 class CoAPServer(CoAP):
     def __init__(self, host, port):
