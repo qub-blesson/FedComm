@@ -32,7 +32,7 @@ class Server(Communicator):
 
 		# MOVE ABOVE transform_test
 		self.uninet = utils.get_model('Unit', self.model_name, config.model_len - 1, self.device, config.model_cfg)
-		self.q.put(self.uninet.state_dict())
+		q.put(self.uninet.state_dict())
 		self.server_listen()
 		connections = 0
 		while connections < config.K:

@@ -16,6 +16,7 @@ import config
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+q = Queue()
 
 class Communicator(object):
     def __init__(self, index, ip_address, host, port, pub_topic='fedadapt', sub_topic='fedadapt', client_num=0):
@@ -25,13 +26,11 @@ class Communicator(object):
         self.payload = 'text/plain'
         self.host = host
         self.port = port
-        self.q = Queue()
 
         if index != config.K:
             self.client = HelperClient(server=(host, port))
         else:
             self.server = CoAPServer(host, port)
-
 
     def send_msg(self, payload):
         payload = pickle.dumps(payload)
@@ -53,12 +52,12 @@ class CoAPServer(CoAP):
 
 
 class Test(Resource):
-    def __init__(self, name="Sensor", coap_server=None):
+    def __init__(self, name="Test", coap_server=None):
         super(Test, self).__init__(name, coap_server, visible=True, observable=True, allow_children=True)
         self.payload = "This is a new test"
         self.content_type = "text/plain"
 
     def render_GET(self, request):
-        self.payload = "test returned"
+        self.payload = q.get()
 
         return self
