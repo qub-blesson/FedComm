@@ -25,23 +25,25 @@ class Communicator(object):
         self.payload = 'text/plain'
         self.host = host
         self.port = port
+        self.q = Queue()
 
         if index != config.K:
             self.client = HelperClient(server=(host, port))
         else:
-            server = CoAPServer(host, port)
-            try:
-                response = Response()
-                response.payload = 'model being returned'
-                server.listen(100)
-            except KeyboardInterrupt:
-                print("Server shutting down")
-                server.close()
+            self.server = CoAPServer(host, port)
+
 
     def send_msg(self, payload):
         payload = pickle.dumps(payload)
         response = self.client.get('test')
         print(response)
+
+    def server_listen(self):
+        try:
+            self.server.listen(100)
+        except KeyboardInterrupt:
+            print("Server shutting down")
+            self.server.close()
 
 
 class CoAPServer(CoAP):
@@ -57,4 +59,6 @@ class Test(Resource):
         self.content_type = "text/plain"
 
     def render_GET(self, request):
-        return "test returned"
+        self.payload = "test returned"
+
+        return self

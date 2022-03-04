@@ -30,13 +30,15 @@ class Server(Communicator):
 		self.port = server_port
 		self.model_name = model_name
 
+		# MOVE ABOVE transform_test
+		self.uninet = utils.get_model('Unit', self.model_name, config.model_len - 1, self.device, config.model_cfg)
+		self.q.put(self.uninet.state_dict())
+		self.server_listen()
 		connections = 0
 		while connections < config.K:
 			connections += int(self.q.get())
 
 		logger.info("Clients have connected to MQTT Server")
-
-		self.uninet = utils.get_model('Unit', self.model_name, config.model_len-1, self.device, config.model_cfg)
 
 		self.transform_test = transforms.Compose([transforms.ToTensor(),transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
 ])
