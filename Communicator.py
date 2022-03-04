@@ -21,18 +21,11 @@ class Communicator(object):
         self.ip = ip_address
         self.path = 'encoding'
         self.payload = 'text/plain'
-        self.client = HelperClient(server=(host, port))
+        self.host = host
+        self.port = port
 
         if index != config.K:
-            request = Request()
-            request.code = defines.Codes.GET.number
-            request.type = defines.Types['NON']
-            request.destination = (host, port)
-            request.uri_path = self.path
-            request.content_type = defines.Content_types["application/xml"]
-            request.payload = 'GIVE DATA'
-            response = self.client.send_request(request)
-            print(response)
+            self.client = HelperClient(server=(host, port))
         else:
             server = CoAPServer(host, port)
             try:
@@ -40,6 +33,18 @@ class Communicator(object):
             except KeyboardInterrupt:
                 print("Server shutting down")
                 server.close()
+
+    def send_msg(self, payload):
+        payload = pickle.dumps(payload)
+        request = Request()
+        request.code = defines.Codes.GET.number
+        request.type = defines.Types['NON']
+        request.destination = (self.host, self.port)
+        request.uri_path = self.path
+        request.content_type = defines.Content_types["application/xml"]
+        request.payload = payload
+        response = self.client.send_request(request)
+        print(response)
 
 class CoAPServer(CoAP):
     def __init__(self, host, port):

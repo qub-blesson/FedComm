@@ -39,6 +39,9 @@ class Client(Communicator):
 		self.optimizer = optim.SGD(self.net.parameters(), lr=LR,
 					  momentum=0.9)
 
+		# TEST - REMOVE AFTER
+		self.send_msg(self.net.state_dict())
+
 		logger.debug('Receiving Global Weights..')
 		weights = self.q.get()[1]
 
@@ -50,23 +53,6 @@ class Client(Communicator):
 		logger.debug('Initialize Finished')
 
 	def train(self, trainloader):
-		# Network speed test
-		network_time_start = time.time()
-		msg = ['MSG_TEST_NETWORK', self.uninet.cpu().state_dict()]
-		start = time.time()
-		self.send_msg(msg)
-		config.comm_time += (time.time() - start)
-
-		msg = self.q.get()[1]
-		network_time_end = time.time()
-		network_speed = (2 * config.model_size * 8) / (network_time_end - network_time_start) #Mbit/s
-
-		logger.info('Network speed is {:}'.format(network_speed))
-		msg = ['MSG_TEST_NETWORK', self.ip, network_speed]
-		start = time.time()
-		self.send_msg(msg)
-		config.comm_time += (time.time() - start)
-
 		# Training start
 		s_time_total = time.time()
 		time_training_c = 0
@@ -79,23 +65,6 @@ class Client(Communicator):
 				outputs = self.net(inputs)
 				loss = self.criterion(outputs, targets)
 				loss.backward()
-				self.optimizer.step()
-
-		else: # Offloading training
-			for batch_idx, (inputs, targets) in enumerate(tqdm.tqdm(trainloader)):
-				inputs, targets = inputs.to(self.device), targets.to(self.device)
-				self.optimizer.zero_grad()
-				outputs = self.net(inputs)
-
-				msg = ['MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER', outputs.cpu(), targets.cpu()]
-				start = time.time()
-				self.send_msg(msg)
-				config.comm_time += (time.time() - start)
-
-				# Wait receiving server gradients
-				gradients = self.q.get()[1]
-
-				outputs.backward(gradients)
 				self.optimizer.step()
 
 		e_time_total = time.time()
