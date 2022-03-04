@@ -20,3 +20,13 @@ class Communicator(object):
         self.path = 'encoding'
         self.payload = 'text/plain'
         self.client = HelperClient(server=(host, port))
+
+        request = Request()
+        request.code = defines.Codes.GET.number
+        request.type = defines.Types['NON']
+        request.destination = (host, port)
+        request.uri_path = self.path
+        # request.content_type = defines.Content_types["application/xml"]
+        request.payload = 'GIVE DATA'
+        response = self.client.send_request(request)
+        print(response)
