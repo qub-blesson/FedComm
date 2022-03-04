@@ -2,6 +2,7 @@
 
 import pickle
 from queue import Queue
+import json
 
 import logging
 from coapthon.client.helperclient import HelperClient
@@ -16,7 +17,7 @@ import config
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-q = Queue()
+q = []
 
 class Communicator(object):
     def __init__(self, index, ip_address, host, port, pub_topic='fedadapt', sub_topic='fedadapt', client_num=0):
@@ -33,8 +34,7 @@ class Communicator(object):
             self.server = CoAPServer(host, port)
 
     def send_msg(self, payload):
-        payload = pickle.dumps(payload)
-        response = self.client.get('test')
+        response = self.client.get('test/')
         print(response)
 
     def server_listen(self):
@@ -54,10 +54,9 @@ class CoAPServer(CoAP):
 class Test(Resource):
     def __init__(self, name="Test", coap_server=None):
         super(Test, self).__init__(name, coap_server, visible=True, observable=True, allow_children=True)
-        self.payload = "This is a new test"
-        self.content_type = "text/plain"
 
     def render_GET(self, request):
-        self.payload = q.get()
+        self.content_type = "text/plain"
+        self.payload = [param.detach().numpy() for param in q[0]]
 
         return self
