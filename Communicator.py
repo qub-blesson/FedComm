@@ -3,6 +3,7 @@
 import pickle
 from queue import Queue
 import json
+import torch
 
 import logging
 from coapthon.client.helperclient import HelperClient
@@ -34,8 +35,14 @@ class Communicator(object):
             self.server = CoAPServer(host, port)
 
     def send_msg(self, payload):
-        response = self.client.get('test/')
-        print(response)
+        request = Request()
+        request.code = defines.Codes.GET.number
+        request.type = defines.Types['NON']
+        request.destination = (self.host, self.port)
+        request.uri_path = 'test/'
+        request.content_type = defines.Content_types["text/plain"]
+        response = self.client.send_request(request)
+        print(len(response.payload))
 
     def server_listen(self):
         try:
@@ -57,6 +64,13 @@ class Test(Resource):
 
     def render_GET(self, request):
         self.content_type = "text/plain"
-        self.payload = [param.detach().numpy() for param in q[0]]
-
+        self.payload = []
+        payload = [param for param in q[0].values()]
+        for i in range(len(payload)):
+            if len(payload[i].size()) > 0:
+                self.payload.append(torch.cat([tensor.view(-1) for tensor in payload[i]]))
+            else:
+                self.payload.append(0)
+        strint = [str(int) for int in self.payload]
+        self.payload = ','.join(strint)
         return self
