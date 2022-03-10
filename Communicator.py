@@ -4,6 +4,7 @@ import pickle
 from queue import Queue
 import json
 import torch
+import collections
 
 import logging
 from coapthon.client.helperclient import HelperClient
@@ -37,12 +38,15 @@ class Communicator(object):
     def send_msg(self, payload):
         request = Request()
         request.code = defines.Codes.GET.number
-        request.type = defines.Types['NON']
+        request.type = defines.Types['CON']
         request.destination = (self.host, self.port)
         request.uri_path = 'test/'
         request.content_type = defines.Content_types["text/plain"]
         response = self.client.send_request(request)
-        print(len(response.payload))
+        #response.payload = response.payload.split('#')
+        #response.payload = response.payload.replace('array', 'np.array')
+        response.payload = response.payload.replace(', dtype=float32', '')
+        resp = eval(response.payload)
 
     def server_listen(self):
         try:
@@ -66,11 +70,15 @@ class Test(Resource):
         self.content_type = "text/plain"
         self.payload = []
         payload = [param for param in q[0].values()]
+        #for i in range(len(payload)):
+            #if len(payload[i].size()) > 0:
+                #self.payload.append(torch.cat([tensor.view(-1) for tensor in payload[i]]))
+            #else:
+                #self.payload.append(0.)
+
+        #strint = [str(double) for double in self.payload]
+        #self.payload = '#'.join(strint)
         for i in range(len(payload)):
-            if len(payload[i].size()) > 0:
-                self.payload.append(torch.cat([tensor.view(-1) for tensor in payload[i]]))
-            else:
-                self.payload.append(0)
-        strint = [str(int) for int in self.payload]
-        self.payload = ','.join(strint)
+            self.payload.append(payload[i].detach().numpy())
+        self.payload = str(self.payload)
         return self
