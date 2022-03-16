@@ -30,7 +30,7 @@ first = True  # First initializaiton control
 
 logger.info('Preparing Sever.')
 
-server = Server(0, config.SERVER_ADDR, config.SERVER_PORT, 'VGG5')
+server = Server(0, config.SERVER_ADDR, config.SERVER_PORT, 'VGG8')
 server.initialize(config.split_layer, offload, first, LR)
 first = False
 

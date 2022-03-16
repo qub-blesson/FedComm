@@ -110,7 +110,9 @@ def concat_weights_client(weights, sweights):
 
     for key in concat_dict:
         if not concat_dict[key]:
-            concat_dict[key].append(torch.from_numpy(np.zeros(sweights[key].numel())))
+            concat_dict[key] = sweights[key]
+            continue
+            # concat_dict[key] = torch.from_numpy(np.zeros(sweights[key].numel()))
         if concat_dict[key][0].numel() == 1:
             concat_dict[key] = concat_dict[key][0]
             continue
