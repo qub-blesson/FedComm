@@ -117,6 +117,8 @@ def concat_weights_client(weights, sweights):
             concat_dict[key] = concat_dict[key][0]
             continue
         if torch.cat(concat_dict[key]).size()[0] < sweights[key].numel():
+            # length = len(concat_dict[key])
+            # concat_dict[key].append(sweights[key][length:])
             concat_dict[key].append(torch.from_numpy(np.zeros((sweights[key].numel()) - torch.cat(concat_dict[key]).size()[0])))
         concat_dict[key] = torch.cat(concat_dict[key])
         if concat_dict[key].size()[0] > sweights[key].numel():
