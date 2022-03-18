@@ -15,10 +15,6 @@ logger = logging.getLogger(__name__)
 class Communicator(object):
     def __init__(self, index, ip_address, host, port, pub_topic='fedadapt', sub_topic='fedadapt', client_num=0):
         self.q = Queue()
-        self.client_id = index
-        self.ip = ip_address
-        self.sub_topic = sub_topic
-        self.pub_topic = pub_topic
         # set 0MQ context
         self.context = zmq.Context()
         # open publish sockets for all devices
@@ -29,23 +25,19 @@ class Communicator(object):
         # subscribe to server from clients
         if index != config.K:
             self.sub_socket.connect("tcp://"+host+":"+str(port))
-            self.sub_socket.subscribe(b'')
         else:
             # server subscribes to all clients
             for i in config.CLIENTS_LIST:
                 self.sub_socket.connect("tcp://"+i+":"+str(port))
-                self.sub_socket.subscribe(b'')
+        self.sub_socket.subscribe(b'')
 
     def send_msg(self, msg):
         msg_pickle = pickle.dumps(msg)
-        self.pub_socket.send_pyobj(msg)
+        self.pub_socket.send(msg_pickle)
 
     # equivalent to recv_msg
     def recv_msg(self):
         # load message
-        msg = self.sub_socket.recv_pyobj()
+        msg = self.sub_socket.recv()
         msg = pickle.loads(msg)
         return msg
-
-    def on_subscribe(self, client, userdata, mid, granted_qos):
-        print("Subscribe message id: " + str(mid))
