@@ -28,11 +28,12 @@ class Communicator(object):
         # subscribe to server from clients
         if index != config.K:
             self.sub_socket.connect("tcp://"+host+":"+str(port))
-            self.sub_socket.setsockopt(zmq.SUBSCRIBE, sub_topic)
+            self.sub_socket.setsockopt_string(zmq.SUBSCRIBE, sub_topic)
         else:
             # server subscribes to all clients
             for i in config.CLIENTS_LIST:
                 self.sub_socket.connect("tcp://"+i+":"+str(port))
+                self.sub_socket.setsockopt_string(zmq.SUBSCRIBE, sub_topic)
 
     def send_msg(self, msg):
         msg_pickle = pickle.dumps(msg)
