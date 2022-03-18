@@ -27,27 +27,26 @@ class Communicator(object):
         self.client_to_server()
         self.server_to_client()
 
-        # server subscribes to all clients
-        # if index == config.K:
-        #
-        # else:
-        # subscribe to server from clients
-
+    # subscribe to server from clients
     def client_to_server(self):
         if self.index == config.K:
             self.pub_socket = self.context.socket(zmq.PUB)
             self.pub_socket.bind("tcp://*:%s" % self.port)
         else:
-            time.sleep(5)
             self.sub_socket = self.context.socket(zmq.SUB)
-            self.sub_socket.connect("tcp://" + self.host + ":" + str(self.port))
+            status = -1
+            while status != 0:
+                status = self.sub_socket.connect("tcp://" + self.host + ":" + str(self.port))
             self.sub_socket.subscribe(b'')
 
+    # server subscribes to all clients
     def server_to_client(self):
         if self.index == config.K:
-            time.sleep(10)
+            self.sub_socket = self.context.socket(zmq.SUB)
             for i in config.CLIENTS_LIST:
-                self.sub_socket.connect("tcp://"+i+":"+str(self.port))
+                status = -1
+                while status != 0:
+                    status = self.sub_socket.connect("tcp://"+i+":"+str(self.port))
         else:
             self.pub_socket = self.context.socket(zmq.PUB)
             self.pub_socket.bind("tcp://*:%s" % self.port)
