@@ -22,13 +22,14 @@ class Communicator(object):
         self.pub_socket.bind("tcp://*:%s" % port)
         self.sub_socket = self.context.socket(zmq.SUB)
         time.sleep(15)
-        # subscribe to server from clients
-        if index != config.K:
-            self.sub_socket.connect("tcp://"+host+":"+str(port))
-        else:
-            # server subscribes to all clients
-            for i in config.CLIENTS_LIST:
-                self.sub_socket.connect("tcp://"+i+":"+str(port))
+
+        # server subscribes to all clients
+        #if index == config.K:
+        #    for i in config.CLIENTS_LIST:
+        #        self.sub_socket.connect("tcp://"+i+":"+str(port))
+        #else:
+            # subscribe to server from clients
+        self.sub_socket.connect("tcp://" + host + ":" + str(port))
         self.sub_socket.subscribe(b'')
 
     def send_msg(self, msg):
