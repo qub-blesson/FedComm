@@ -37,8 +37,9 @@ class Communicator(object):
                 self.sub_socket.setsockopt_string(zmq.SUBSCRIBE, sub_topic)
 
     def send_msg(self, msg):
-        msg_pickle = pickle.dumps(msg)
-        self.pub_socket.send(self.pub_topic, msg_pickle)
+        #msg_pickle = pickle.dumps(msg)
+        self.pub_socket.send_pyobj(self.pub_topic, zmq.SNDMORE)
+        self.pub_socket.send_pyobj(msg)
 
     # equivalent to recv_msg
     def recv_msg(self):
