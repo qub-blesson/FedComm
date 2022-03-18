@@ -4,7 +4,7 @@ import pickle
 from queue import Queue
 
 import logging
-import paho.mqtt.client as mqtt
+import zmq
 
 import config
 
@@ -17,43 +17,26 @@ class Communicator(object):
         self.ip = ip_address
         self.sub_topic = sub_topic
         self.pub_topic = pub_topic
-        self.client_num = client_num
-        # create client
-        self.client = mqtt.Client(str(self.client_id))
-        # create message queue
-        self.q = Queue()
-        # assign functionality
-        self.client.on_connect = self.on_connect
-        self.client.on_disconnect = self.on_disconnect
-        self.client.on_message = self.on_message
-        self.client.on_subscribe = self.on_subscribe
-        # establish connection to host
-        self.client.connect(host, port)
-        # start communication
-        self.client.loop_start()
+        # set 0MQ context
+        self.context = zmq.Context()
+        # open publish sockets for all devices
+        self.pub_socket = self.context.socket(zmq.PUB)
+        self.pub_socket.bind("tcp://*:%s" % port)
+        self.sub_socket = self.context.socket(zmq.SUB)
+        # subscribe to server from clients
+        if index != config.K:
+            self.sub_socket.connect("tcp://"+host+":"+port)
+            self.sub_socket.setsockopt(zmq.SUBSCRIBE, sub_topic)
+        else:
+            for i in config.CLIENTS_LIST:
+                self.sub_socket.connect("tcp://"+i+":"+port)
 
     def send_msg(self, msg):
         msg_pickle = pickle.dumps(msg)
-        if self.client_id == config.K:
-            # server
-            self.client.publish(self.pub_topic, msg_pickle)
-        else:
-            # client
-            self.client.publish(self.pub_topic, msg_pickle)
-
-    # MQTT functionality below
-    def on_connect(self, client, userdata, flags, rc):
-        logger.info('Connecting to MQTT Server.')
-        self.client.subscribe(self.sub_topic)
-        if self.client_id != config.K:
-            self.send_msg("1")
+        self.pub_socket.send(self.pub_topic, msg_pickle)
 
     def on_disconnect(self, client, userdata, rc):
         logging.info("Client %d Disconnect result code: " + str(rc), self.client_id)
-
-    def __del__(self):
-        self.client.loop_stop()
-        self.client.disconnect()
 
     # equivalent to recv_msg
     def on_message(self, client, userdata, message):
