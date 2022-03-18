@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 class Communicator(object):
     def __init__(self, index, ip_address, host, port, pub_topic='fedadapt', sub_topic='fedadapt', client_num=0):
+        self.q = Queue()
         self.client_id = index
         self.ip = ip_address
         self.sub_topic = sub_topic
@@ -24,7 +25,7 @@ class Communicator(object):
         self.pub_socket = self.context.socket(zmq.PUB)
         self.pub_socket.bind("tcp://*:%s" % port)
         self.sub_socket = self.context.socket(zmq.SUB)
-        time.sleep(5)
+        time.sleep(15)
         # subscribe to server from clients
         if index != config.K:
             self.sub_socket.connect("tcp://"+host+":"+str(port))
@@ -39,14 +40,12 @@ class Communicator(object):
         msg_pickle = pickle.dumps(msg)
         self.pub_socket.send(self.pub_topic, msg_pickle)
 
-    def on_disconnect(self, client, userdata, rc):
-        logging.info("Client %d Disconnect result code: " + str(rc), self.client_id)
-
     # equivalent to recv_msg
-    def on_message(self, client, userdata, message):
+    def recv_msg(self):
         # load message and put into queue
-        msg = pickle.loads(message.payload)
-        self.q.put(msg)
+        msg = self.sub_socket.recv()
+        msg = pickle.loads(msg)
+        return msg
 
     def on_subscribe(self, client, userdata, mid, granted_qos):
         print("Subscribe message id: " + str(mid))

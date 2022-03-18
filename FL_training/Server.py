@@ -30,12 +30,6 @@ class Server(Communicator):
 		self.port = server_port
 		self.model_name = model_name
 
-		connections = 0
-		while connections < config.K:
-			connections += int(self.q.get())
-
-		logger.info("Clients have connected to MQTT Server")
-
 		self.uninet = utils.get_model('Unit', self.model_name, config.model_len-1, self.device, config.model_cfg)
 
 		self.transform_test = transforms.Compose([transforms.ToTensor(),transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
@@ -65,23 +59,10 @@ class Server(Communicator):
 			self.criterion = nn.CrossEntropyLoss()
 
 		msg = ['MSG_INITIAL_GLOBAL_WEIGHTS_SERVER_TO_CLIENT', self.uninet.state_dict()]
-		start = time.time()
 		self.send_msg(msg)
-		config.comm_time += (time.time() - start)
 
 	def train(self, thread_number, client_ips):
-		# Network test
-		self._thread_network_testing()
-
-		self.bandwidth = {}
-		connections = 0
-		while connections != config.K:
-			msg = self.q.get()
-			connections += 1
-			self.bandwidth[msg[1]] = msg[2]
-
 		# Training start
-		self.threads = {}
 		for i in range(len(client_ips)):
 			if config.split_layer[i] == (config.model_len -1):
 				logger.info(str(client_ips[i]) + ' no offloading training start')
@@ -98,11 +79,7 @@ class Server(Communicator):
 			connections += 1
 			self.ttpi[msg[1]] = msg[2]
 
-		self.group_labels = self.clustering(self.ttpi, self.bandwidth)
-		self.offloading = self.get_offloading(self.split_layers)
-		state = self.concat_norm(self.ttpi, self.offloading)
-
-		return state, self.bandwidth
+		return self.ttpi
 
 	def _thread_network_testing(self):
 		connections = 0
