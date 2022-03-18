@@ -44,8 +44,9 @@ class Communicator(object):
     # equivalent to recv_msg
     def recv_msg(self):
         # load message and put into queue
-        msg = self.sub_socket.recv()
-        msg = pickle.loads(msg)
+        topic = self.sub_socket.recv_string()
+        print(topic)
+        msg = self.sub_socket.recv_pyobj()
         return msg
 
     def on_subscribe(self, client, userdata, mid, granted_qos):
