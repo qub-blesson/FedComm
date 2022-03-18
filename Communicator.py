@@ -29,24 +29,22 @@ class Communicator(object):
         # subscribe to server from clients
         if index != config.K:
             self.sub_socket.connect("tcp://"+host+":"+str(port))
-            self.sub_socket.setsockopt_string(zmq.SUBSCRIBE, sub_topic)
+            self.sub_socket.subscribe(b'')
         else:
             # server subscribes to all clients
             for i in config.CLIENTS_LIST:
                 self.sub_socket.connect("tcp://"+i+":"+str(port))
-                self.sub_socket.setsockopt_string(zmq.SUBSCRIBE, sub_topic)
+                self.sub_socket.subscribe(b'')
 
     def send_msg(self, msg):
-        #msg_pickle = pickle.dumps(msg)
-        self.pub_socket.send_pyobj(self.pub_topic, zmq.SNDMORE)
+        msg_pickle = pickle.dumps(msg)
         self.pub_socket.send_pyobj(msg)
 
     # equivalent to recv_msg
     def recv_msg(self):
-        # load message and put into queue
-        topic = self.sub_socket.recv_string()
-        print(topic)
+        # load message
         msg = self.sub_socket.recv_pyobj()
+        msg = pickle.loads(msg)
         return msg
 
     def on_subscribe(self, client, userdata, mid, granted_qos):
