@@ -8,7 +8,6 @@ SERVER_ADDR = '192.168.101.120'
 SERVER_PORT = 1883
 
 K = 4  # Number of devices
-G = 4  # Number of groups
 
 # Unique clients order
 HOST2IP = {'mars116XU': '192.168.101.116', 'mars117XU': '192.168.101.217', 'mars118XU': '192.168.101.218',

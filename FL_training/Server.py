@@ -60,20 +60,20 @@ class Server(Communicator):
                                                     transform=self.transform_test)
         self.testloader = torch.utils.data.DataLoader(self.testset, batch_size=100, shuffle=False, num_workers=4)
 
-    def initialize(self, split_layers, offload, first, LR):
+    def initialize(self, offload, first, LR):
         if offload or first:
-            self.split_layers = split_layers
+
             self.nets = {}
             self.optimizers = {}
-            for i in range(len(split_layers)):
+            for i in range(len(config.split_layer)):
                 client_ip = config.CLIENTS_LIST[i]
-                if split_layers[i] < len(config.model_cfg[
+                if config.split_layer[i] < len(config.model_cfg[
                                              self.model_name]) - 1:  # Only offloading client need initialize optimizer in server
-                    self.nets[client_ip] = utils.get_model('Server', self.model_name, split_layers[i], self.device,
+                    self.nets[client_ip] = utils.get_model('Server', self.model_name, config.split_layer[i], self.device,
                                                            config.model_cfg)
 
                     # offloading weight in server also need to be initialized from the same global weight
-                    cweights = utils.get_model('Client', self.model_name, split_layers[i], self.device,
+                    cweights = utils.get_model('Client', self.model_name, config.split_layer[i], self.device,
                                                config.model_cfg).state_dict()
                     pweights = utils.split_weights_server(self.uninet.state_dict(), cweights,
                                                           self.nets[client_ip].state_dict())
@@ -82,7 +82,7 @@ class Server(Communicator):
                     self.optimizers[client_ip] = optim.SGD(self.nets[client_ip].parameters(), lr=LR,
                                                            momentum=0.9)
                 else:
-                    self.nets[client_ip] = utils.get_model('Server', self.model_name, split_layers[i], self.device,
+                    self.nets[client_ip] = utils.get_model('Server', self.model_name, config.split_layer[i], self.device,
                                                            config.model_cfg)
             self.criterion = nn.CrossEntropyLoss()
 
@@ -191,10 +191,9 @@ class Server(Communicator):
                 w_local = (msg[1], config.N / config.K)
                 w_local_list.append(w_local)
         zero_model = utils.zero_init(self.uninet).state_dict()
-        aggregrated_model = utils.fed_avg(zero_model, w_local_list, config.N)
+        aggregated_model = utils.fed_avg(zero_model, w_local_list, config.N)
 
-        self.uninet.load_state_dict(aggregrated_model)
-        return aggregrated_model
+        self.uninet.load_state_dict(aggregated_model)
 
     def test(self, r):
         self.uninet.eval()
@@ -273,26 +272,6 @@ class Server(Communicator):
             split_layer.append(idx)
         return split_layer
 
-    def concat_norm(self, ttpi, offloading):
-        ttpi_order = []
-        offloading_order = []
-        for c in config.CLIENTS_LIST:
-            ttpi_order.append(ttpi[c])
-            offloading_order.append(offloading[c])
-
-        group_max_index = [0 for i in range(config.G)]
-        group_max_value = [0 for i in range(config.G)]
-        for i in range(len(config.CLIENTS_LIST)):
-            label = self.group_labels[i]
-            if ttpi_order[i] >= group_max_value[label]:
-                group_max_value[label] = ttpi_order[i]
-                group_max_index[label] = i
-
-        ttpi_order = np.array(ttpi_order)[np.array(group_max_index)]
-        offloading_order = np.array(offloading_order)[np.array(group_max_index)]
-        state = np.append(ttpi_order, offloading_order)
-        return state
-
     def get_offloading(self, split_layer):
         offloading = {}
         workload = 0
@@ -307,8 +286,8 @@ class Server(Communicator):
 
         return offloading
 
-    def reinitialize(self, split_layers, offload, first, LR):
-        self.initialize(split_layers, offload, first, LR)
+    def reinitialize(self, offload, first, LR):
+        self.initialize(offload, first, LR)
 
     def scatter(self, msg):
         for i in self.client_socks:

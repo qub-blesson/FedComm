@@ -2,22 +2,17 @@ import time
 import torch
 import pickle
 import argparse
-
+from Server import Server
+import config
 import logging
+import sys
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-import sys
-
 sys.path.append('../')
-from Server import Server
-import config
-import utils
-import PPO
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--offload', help='FedAdapt or classic FL mode', type=utils.str2bool, default=False)
 parser.add_argument('--communicator', help='Communication protocol', default='TCP')
 args = parser.parse_args()
 
@@ -25,10 +20,11 @@ LR = config.LR
 offload = args.offload
 communicator = args.communicator
 config.COMM = communicator
-first = True  # First initializaiton control
+first = True  # First initialization control
 
 logger.info('Preparing Sever.')
 
+server = None
 if communicator == 'TCP':
     server = Server(0, config.SERVER_ADDR, config.SERVER_PORT, 'VGG5')
 elif communicator == 'MQTT' or communicator == 'AMQP':
@@ -36,13 +32,9 @@ elif communicator == 'MQTT' or communicator == 'AMQP':
 server.initialize(config.split_layer, offload, first, LR)
 first = False
 
-state_dim = 2 * config.G
-action_dim = config.G
-
 logger.info('Classic FL Training')
 
-res = {}
-res['trianing_time'], res['test_acc_record'], res['communication_time'] = [], [], []
+res = {'training_time': [], 'test_acc_record': [], 'communication_time': []}
 
 for r in range(config.R):
     logger.info('====================================>')
@@ -50,17 +42,17 @@ for r in range(config.R):
 
     s_time = time.time()
     state = server.train(thread_number=config.K, client_ips=config.CLIENTS_LIST)
-    aggregrated_model = server.aggregate(config.CLIENTS_LIST)
+    server.aggregate(config.CLIENTS_LIST)
     e_time = time.time()
 
     # Recording each round training time, bandwidth and test accuracy
-    trianing_time = e_time - s_time
-    res['trianing_time'].append(trianing_time)
+    training_time = e_time - s_time
+    res['training_time'].append(training_time)
     comp_time = 0
     for key in state:
         comp_time += state[key]
     comp_time /= 4
-    res['communication_time'].append(trianing_time - comp_time)
+    res['communication_time'].append(training_time - comp_time)
     test_acc = server.test(r)
     res['test_acc_record'].append(test_acc)
 
@@ -69,18 +61,13 @@ for r in range(config.R):
 
     logger.info('Round Finish')
     logger.info('==> Round Training Computation Time: {:}'.format(comp_time))
-    logger.info('==> Round Training Communication Time: {:}'.format(trianing_time - comp_time))
+    logger.info('==> Round Training Communication Time: {:}'.format(training_time - comp_time))
 
     logger.info('==> Reinitialization for Round : {:}'.format(r + 1))
-
-    split_layers = config.split_layer
 
     if r > 49:
         LR = config.LR * 0.1
 
-    server.reinitialize(split_layers, offload, first, LR)
+    server.reinitialize(offload, first, LR)
     logger.info('==> Reinitialization Finish')
 comm_time = server.finish(config.CLIENTS_LIST)
-# res['communication_time'].append(comm_time)
-# with open('../results/FedAdapt_res.pkl', 'wb') as f:
-    # pickle.dump(res, f)

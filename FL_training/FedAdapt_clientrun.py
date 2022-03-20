@@ -4,21 +4,16 @@ import time
 import multiprocessing
 import os
 import argparse
-
-import logging
-
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
-
-import sys
-
-sys.path.append('../')
 from Client import Client
 import config
 import utils
+import logging
+import sys
 
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+sys.path.append('../')
 parser = argparse.ArgumentParser()
-parser.add_argument('--offload', help='FedAdapt or classic FL mode', type=utils.str2bool, default=False)
 parser.add_argument('--communicator', help='Communication protocol', default='TCP')
 args = parser.parse_args()
 
@@ -43,13 +38,11 @@ trainloader, classes = utils.get_local_dataloader(index, cpu_count)
 
 logger.info('Classic FL Training')
 
-flag = False  # Bandwidth control flag.
-
 for r in range(config.R):
     logger.info('====================================>')
     logger.info('ROUND: {} START'.format(r))
 
-    training_time = client.train(trainloader)
+    client.train(trainloader)
     logger.info('ROUND: {} END'.format(r))
 
     logger.info('==> Waiting for aggregration')

@@ -82,8 +82,6 @@ class Client(Communicator):
         elif config.COMM == 'MQTT' or config.COMM == 'AMQP':
             self.send_msg(msg)
 
-        return e_time_total - s_time_total
-
     def upload(self):
         msg = ['MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER', self.net.cpu().state_dict()]
         start = time.time()

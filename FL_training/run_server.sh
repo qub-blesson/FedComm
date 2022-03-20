@@ -1,1 +1,1 @@
-python3 FedAdapt_serverrun.py --offload False --communicator $1
+python3 FedAdapt_serverrun.py --communicator "$1"
