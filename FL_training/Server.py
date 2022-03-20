@@ -29,6 +29,8 @@ class Server(Communicator):
     def __init__(self, index, ip_address, server_port, model_name):
         super(Server, self).__init__(index, ip_address, ip_address, server_port, pub_topic="fedserver",
                                      sub_topic='fedadapt', client_num=config.K)
+        self.optimizers = None
+        self.nets = None
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.port = server_port
         self.model_name = model_name
@@ -60,15 +62,16 @@ class Server(Communicator):
                                                     transform=self.transform_test)
         self.testloader = torch.utils.data.DataLoader(self.testset, batch_size=100, shuffle=False, num_workers=4)
 
-    def initialize(self, offload, first, LR):
-        if offload or first:
+    def initialize(self, first, LR):
+        if first:
 
             self.nets = {}
             self.optimizers = {}
             for i in range(len(config.split_layer)):
                 client_ip = config.CLIENTS_LIST[i]
                 if config.split_layer[i] < len(config.model_cfg[
-                                             self.model_name]) - 1:  # Only offloading client need initialize optimizer in server
+                                             self.model_name]) - 1:  # Only offloading client need initialize ...
+                    # optimizer in server
                     self.nets[client_ip] = utils.get_model('Server', self.model_name, config.split_layer[i], self.device,
                                                            config.model_cfg)
 
@@ -286,8 +289,8 @@ class Server(Communicator):
 
         return offloading
 
-    def reinitialize(self, offload, first, LR):
-        self.initialize(offload, first, LR)
+    def reinitialize(self, first, LR):
+        self.initialize(first, LR)
 
     def scatter(self, msg):
         for i in self.client_socks:

@@ -17,7 +17,6 @@ parser.add_argument('--communicator', help='Communication protocol', default='TC
 args = parser.parse_args()
 
 LR = config.LR
-offload = args.offload
 communicator = args.communicator
 config.COMM = communicator
 first = True  # First initialization control
@@ -29,7 +28,7 @@ if communicator == 'TCP':
     server = Server(0, config.SERVER_ADDR, config.SERVER_PORT, 'VGG5')
 elif communicator == 'MQTT' or communicator == 'AMQP':
     server = Server(config.K, config.SERVER_ADDR, config.SERVER_PORT, 'VGG5')
-server.initialize(config.split_layer, offload, first, LR)
+server.initialize(config.split_layer, first, LR)
 first = False
 
 logger.info('Classic FL Training')
@@ -68,6 +67,6 @@ for r in range(config.R):
     if r > 49:
         LR = config.LR * 0.1
 
-    server.reinitialize(offload, first, LR)
+    server.reinitialize(first, LR)
     logger.info('==> Reinitialization Finish')
 comm_time = server.finish(config.CLIENTS_LIST)
