@@ -28,7 +28,7 @@ if communicator == 'TCP':
     server = Server(0, config.SERVER_ADDR, config.SERVER_PORT, 'VGG5')
 elif communicator == 'MQTT' or communicator == 'AMQP':
     server = Server(config.K, config.SERVER_ADDR, config.SERVER_PORT, 'VGG5')
-server.initialize(first, LR)
+server.initialize(config.split_layer, first, LR)
 first = False
 
 logger.info('Classic FL Training')
