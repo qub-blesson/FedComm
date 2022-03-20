@@ -39,16 +39,7 @@ first = False
 state_dim = 2 * config.G
 action_dim = config.G
 
-if offload:
-    # Initialize trained RL agent
-    agent = PPO.PPO(state_dim, action_dim, config.action_std, config.rl_lr, config.rl_betas, config.rl_gamma,
-                    config.K_epochs, config.eps_clip)
-    agent.policy.load_state_dict(torch.load('./PPO_FedAdapt.pth'))
-
-if offload:
-    logger.info('FedAdapt Training')
-else:
-    logger.info('Classic FL Training')
+logger.info('Classic FL Training')
 
 res = {}
 res['trianing_time'], res['test_acc_record'], res['communication_time'] = [], [], []

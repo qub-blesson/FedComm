@@ -24,6 +24,10 @@ class Client(Communicator):
     def __init__(self, index, ip_address, server_addr, server_port, datalen, model_name, split_layer):
         super(Client, self).__init__(index, ip_address, server_addr, server_port, sub_topic='fedserver',
                                      pub_topic='fedadapt', client_num=config.K)
+        self.optimizer = None
+        self.criterion = None
+        self.net = None
+        self.split_layer = None
         self.datalen = datalen
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.model_name = model_name
@@ -35,8 +39,8 @@ class Client(Communicator):
         elif config.COMM == 'AMQP':
             self.send_msg("1")
 
-    def initialize(self, split_layer, offload, first, LR):
-        if offload or first:
+    def initialize(self, split_layer, first, LR):
+        if first:
             self.split_layer = split_layer
 
             logger.debug('Building Model.')
@@ -53,17 +57,12 @@ class Client(Communicator):
         elif config.COMM == 'MQTT' or config.COMM == 'AMQP':
             weights = self.q.get()[1]
 
-        if self.split_layer == (config.model_len - 1):
-            self.net.load_state_dict(weights)
-        else:
-            pweights = utils.split_weights_client(weights, self.net.state_dict())
-            self.net.load_state_dict(pweights)
+        self.net.load_state_dict(weights)
         logger.debug('Initialize Finished')
 
     def train(self, trainloader):
         # Training start
         s_time_total = time.time()
-        time_training_c = 0
         self.net.to(self.device)
         self.net.train()
         if self.split_layer == (config.model_len - 1):  # No offloading training
@@ -94,8 +93,8 @@ class Client(Communicator):
             self.send_msg(msg)
         config.comm_time += (time.time() - start)
 
-    def reinitialize(self, split_layers, offload, first, LR):
-        self.initialize(split_layers, offload, first, LR)
+    def reinitialize(self, split_layers, first, LR):
+        self.initialize(split_layers, first, LR)
 
     def finish(self):
         msg = ['MSG_COMMUNICATION_TIME', config.comm_time]
