@@ -1,18 +1,24 @@
+import time
+
 import torch
 import torch.nn as nn
+import torch.optim as optim
 import torchvision
 import torchvision.transforms as transforms
+import threading
 import tqdm
 import numpy as np
-from Communicator import *
-import utils
-import config
-import sys
 import logging
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+import sys
 sys.path.append('../')
+from Communicator import *
+import utils
+import config
+
 np.random.seed(0)
 torch.manual_seed(0)
 
