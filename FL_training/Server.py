@@ -29,6 +29,7 @@ class Server(Communicator):
     def __init__(self, index, ip_address, server_port, model_name):
         super(Server, self).__init__(index, ip_address, ip_address, server_port, pub_topic="fedserver",
                                      sub_topic='fedadapt', client_num=config.K)
+        self.criterion = None
         self.optimizers = None
         self.nets = None
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -44,7 +45,6 @@ class Server(Communicator):
                 logger.info("Waiting Incoming Connections.")
                 (client_sock, (ip, port)) = self.sock.accept()
                 logger.info('Got connection from ' + str(ip))
-                logger.info(client_sock)
                 self.client_socks[str(ip)] = client_sock
         elif config.COMM == 'MQTT' or config.COMM == 'AMQP':
             connections = 0
@@ -64,29 +64,12 @@ class Server(Communicator):
 
     def initialize(self, first, LR):
         if first:
-
             self.nets = {}
             self.optimizers = {}
             for i in range(len(config.split_layer)):
                 client_ip = config.CLIENTS_LIST[i]
-                if config.split_layer[i] < len(config.model_cfg[
-                                             self.model_name]) - 1:  # Only offloading client need initialize ...
-                    # optimizer in server
-                    self.nets[client_ip] = utils.get_model('Server', self.model_name, config.split_layer[i], self.device,
-                                                           config.model_cfg)
-
-                    # offloading weight in server also need to be initialized from the same global weight
-                    cweights = utils.get_model('Client', self.model_name, config.split_layer[i], self.device,
-                                               config.model_cfg).state_dict()
-                    pweights = utils.split_weights_server(self.uninet.state_dict(), cweights,
-                                                          self.nets[client_ip].state_dict())
-                    self.nets[client_ip].load_state_dict(pweights)
-
-                    self.optimizers[client_ip] = optim.SGD(self.nets[client_ip].parameters(), lr=LR,
-                                                           momentum=0.9)
-                else:
-                    self.nets[client_ip] = utils.get_model('Server', self.model_name, config.split_layer[i], self.device,
-                                                           config.model_cfg)
+                self.nets[client_ip] = utils.get_model('Server', self.model_name, config.split_layer[i], self.device,
+                                                       config.model_cfg)
             self.criterion = nn.CrossEntropyLoss()
 
         msg = ['MSG_INITIAL_GLOBAL_WEIGHTS_SERVER_TO_CLIENT', self.uninet.state_dict()]
@@ -118,20 +101,14 @@ class Server(Communicator):
     def aggregate(self, client_ips):
         w_local_list = []
         for i in range(len(client_ips)):
+            msg = None
             if config.COMM == 'TCP':
                 msg = self.recv_msg(self.client_socks[client_ips[i]], 'MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER')
             elif config.COMM == 'MQTT' or config.COMM == 'AMQP':
-                msg = None
                 while msg is None:
                     msg = self.q.get()
-            if config.split_layer[i] != (config.model_len - 1):
-                w_local = (
-                utils.concat_weights(self.uninet.state_dict(), msg[1], self.nets[client_ips[i]].state_dict()),
-                config.N / config.K)
-                w_local_list.append(w_local)
-            else:
-                w_local = (msg[1], config.N / config.K)
-                w_local_list.append(w_local)
+            w_local = (msg[1], config.N / config.K)
+            w_local_list.append(w_local)
         zero_model = utils.zero_init(self.uninet).state_dict()
         aggregated_model = utils.fed_avg(zero_model, w_local_list, config.N)
 

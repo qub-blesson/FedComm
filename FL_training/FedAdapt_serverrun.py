@@ -44,7 +44,7 @@ for r in range(config.R):
     server.aggregate(config.CLIENTS_LIST)
     e_time = time.time()
 
-    # Recording each round training time, bandwidth and test accuracy
+    # Recording each round training time and test accuracy
     training_time = e_time - s_time
     res['training_time'].append(training_time)
     comp_time = 0
