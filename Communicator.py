@@ -48,6 +48,7 @@ class Communicator(object):
             self.sub_socket = self.context.socket(zmq.SUB)
             for i in config.CLIENTS_LIST:
                 self.sub_socket.connect("tcp://"+i+":"+str(self.port))
+                self.sub_socket.subscribe(b'')
         else:
             self.pub_socket = self.context.socket(zmq.PUB)
             self.pub_socket.bind("tcp://*:%s" % self.port)
