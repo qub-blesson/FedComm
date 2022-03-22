@@ -63,12 +63,6 @@ class Server(Communicator):
 
 	def train(self, thread_number, client_ips):
 		# Training start
-		for i in range(len(client_ips)):
-			if config.split_layer[i] == (config.model_len -1):
-				logger.info(str(client_ips[i]) + ' no offloading training start')
-			else:
-				logger.info(str(client_ips[i]) + ' offloading training start')
-
 		self.ttpi = {} # Training time per iteration
 		connections = 0
 		while connections != config.K:

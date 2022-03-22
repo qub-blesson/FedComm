@@ -1,6 +1,7 @@
 # Communicator Object
 
 import pickle
+import threading
 from queue import Queue
 
 import logging
@@ -16,6 +17,7 @@ logger = logging.getLogger(__name__)
 class Communicator(object):
     def __init__(self, index, ip_address, host, port, pub_topic='fedadapt', sub_topic='fedadapt', client_num=0):
         self.q = Queue()
+        self.ip = ip_address
         self.index = index
         self.host = host
         self.port = port
@@ -26,18 +28,21 @@ class Communicator(object):
         self.sub_socket = None
         self.client_to_server()
         self.server_to_client()
+        self.thread = threading.Thread(target=self.recv_msg)
+        self.thread.start()
 
     # subscribe to server from clients
     def client_to_server(self):
         if self.index == config.K:
             self.pub_socket = self.context.socket(zmq.PUB)
             self.pub_socket.bind("tcp://*:%s" % self.port)
-            self.pub_socket.send_string(b'test')
+            time.sleep(30)
+            self.pub_socket.send(b'test')
         else:
             self.sub_socket = self.context.socket(zmq.SUB)
             self.sub_socket.connect("tcp://" + self.host + ":" + str(self.port))
             self.sub_socket.subscribe(b'')
-            self.sub_socket.recv_string()
+            self.sub_socket.recv()
 
     # server subscribes to all clients
     def server_to_client(self):
@@ -53,9 +58,7 @@ class Communicator(object):
         msg_pickle = pickle.dumps(msg)
         self.pub_socket.send(msg_pickle)
 
-    # equivalent to recv_msg
     def recv_msg(self):
         # load message
-        msg = self.sub_socket.recv()
-        msg = pickle.loads(msg)
-        return msg
+        while True:
+            self.q.put(self.sub_socket.recv())

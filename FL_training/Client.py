@@ -40,9 +40,7 @@ class Client(Communicator):
 					  momentum=0.9)
 
 		logger.debug('Receiving Global Weights..')
-		weights = self.recv_msg()
-		print(weights)
-
+		weights = self.q.get()[1]
 
 		if self.split_layer == (config.model_len -1):
 			self.net.load_state_dict(weights)
