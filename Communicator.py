@@ -37,12 +37,10 @@ class Communicator(object):
             self.pub_socket = self.context.socket(zmq.PUB)
             self.pub_socket.bind("tcp://*:%s" % self.port)
             time.sleep(30)
-            self.pub_socket.send(b'test')
         else:
             self.sub_socket = self.context.socket(zmq.SUB)
             self.sub_socket.connect("tcp://" + self.host + ":" + str(self.port))
             self.sub_socket.subscribe(b'')
-            self.sub_socket.recv()
 
     # server subscribes to all clients
     def server_to_client(self):
@@ -61,4 +59,4 @@ class Communicator(object):
     def recv_msg(self):
         # load message
         while True:
-            self.q.put(self.sub_socket.recv())
+            self.q.put(pickle.loads(self.sub_socket.recv()))
