@@ -51,7 +51,7 @@ class Server(Communicator):
             while connections < config.K:
                 connections += int(self.q.get())
 
-            logger.info("Clients have connected to MQTT Server")
+            logger.info("Clients have connected")
 
         self.uninet = utils.get_model('Unit', self.model_name, config.model_len - 1, self.device, config.model_cfg)
 
@@ -76,7 +76,7 @@ class Server(Communicator):
         if config.COMM == 'TCP':
             for i in self.client_socks:
                 self.snd_msg_tcp(self.client_socks[i], msg)
-        elif config.COMM == 'MQTT' or config.COMM == 'AMQP':
+        else:
             self.send_msg(msg)
 
     def train(self, thread_number, client_ips):
@@ -87,7 +87,7 @@ class Server(Communicator):
             for s in self.client_socks:
                 msg = self.recv_msg(self.client_socks[s], 'MSG_TRAINING_TIME_PER_ITERATION')
                 ttpi[msg[1]] = msg[2]
-        elif config.COMM == 'MQTT' or config.COMM == 'AMQP':
+        else:
             connections = 0
             while connections != config.K:
                 msg = self.q.get()
@@ -104,7 +104,7 @@ class Server(Communicator):
             msg = None
             if config.COMM == 'TCP':
                 msg = self.recv_msg(self.client_socks[client_ips[i]], 'MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER')
-            elif config.COMM == 'MQTT' or config.COMM == 'AMQP':
+            else:
                 while msg is None:
                     msg = self.q.get()
             w_local = (msg[1], config.N / config.K)
@@ -146,7 +146,7 @@ class Server(Communicator):
         if config.COMM == 'TCP':
             for i in range(len(client_ips)):
                 msg.append(self.recv_msg(self.client_socks[client_ips[i]], 'MSG_COMMUNICATION_TIME')[1])
-        elif config.COMM == 'MQTT' or config.COMM == 'AMQP':
+        else:
             connections = 0
             while connections != config.K:
                 msg.append(self.q.get()[1])

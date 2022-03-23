@@ -51,10 +51,9 @@ class Client(Communicator):
         self.optimizer = optim.SGD(self.net.parameters(), lr=LR,
                                    momentum=0.9)
         logger.debug('Receiving Global Weights..')
-        weights = None
         if config.COMM == 'TCP':
             weights = self.recv_msg(self.sock)[1]
-        elif config.COMM == 'MQTT' or config.COMM == 'AMQP':
+        else:
             weights = self.q.get()[1]
 
         self.net.load_state_dict(weights)
@@ -79,7 +78,7 @@ class Client(Communicator):
         msg = ['MSG_TRAINING_TIME_PER_ITERATION', self.ip, e_time_total - s_time_total]
         if config.COMM == 'TCP':
             self.snd_msg_tcp(self.sock, msg)
-        elif config.COMM == 'MQTT' or config.COMM == 'AMQP':
+        else:
             self.send_msg(msg)
 
     def upload(self):
@@ -87,7 +86,7 @@ class Client(Communicator):
         start = time.time()
         if config.COMM == 'TCP':
             self.snd_msg_tcp(self.sock, msg)
-        elif config.COMM == 'MQTT' or config.COMM == 'AMQP':
+        else:
             self.send_msg(msg)
         config.comm_time += (time.time() - start)
 
@@ -98,7 +97,7 @@ class Client(Communicator):
         msg = ['MSG_COMMUNICATION_TIME', config.comm_time]
         if config.COMM == 'TCP':
             self.snd_msg_tcp(self.sock, msg)
-        elif config.COMM == 'MQTT' or config.COMM == 'AMQP':
+        else:
             self.send_msg(msg)
             if self.q.get() == 'DONE':
                 pass

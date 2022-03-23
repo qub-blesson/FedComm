@@ -3,12 +3,13 @@
 import pickle
 import struct
 import socket
-
+import time
 import logging
 import pika
 import threading
 from queue import Queue
 import paho.mqtt.client as mqtt
+import zmq
 
 import config
 
@@ -22,18 +23,19 @@ class Communicator(object):
         # all types
         self.ip = ip_address
         self.client = None
+        self.q = Queue()
+        self.host = host
+        self.port = port
+        self.client_id = index
+        self.index = None
         if config.COMM == 'TCP':
             self.sock = socket.socket()
         elif config.COMM == 'MQTT':
-            self.client_id = index
-            self.ip = ip_address
             self.sub_topic = sub_topic
             self.pub_topic = pub_topic
             self.client_num = client_num
             # create client
             self.client = mqtt.Client(str(self.client_id))
-            # create message queue
-            self.q = Queue()
             # assign functionality
             self.client.on_connect = self.on_connect
             self.client.on_disconnect = self.on_disconnect
@@ -45,10 +47,7 @@ class Communicator(object):
             self.client.loop_start()
         elif config.COMM == 'AMQP':
             self.sub_channel = None
-            self.client_id = index
             self.user = user
-            self.host = host
-            self.port = port
             # Create connection to AMQP server
             self.credentials = pika.PlainCredentials(user, password)
             self.connection = pika.BlockingConnection(pika.ConnectionParameters(
@@ -61,8 +60,15 @@ class Communicator(object):
             self.pub_channel.exchange_declare(exchange=self.pub_topic, exchange_type='fanout')
             self.count = 0
             # Create Q
-            self.q = Queue()
             self.thread = threading.Thread(target=self.recv_msg_amqp)
+            self.thread.start()
+        elif config.COMM == "0MQ":
+            self.context = zmq.Context()
+            self.pub_socket = None
+            self.sub_socket = None
+            self.client_to_server()
+            self.server_to_client()
+            self.thread = threading.Thread(target=self.recv_msg_0mq)
             self.thread.start()
 
     # TCP Functionality
@@ -92,6 +98,8 @@ class Communicator(object):
             self.client.publish(self.pub_topic, msg_pickle)
         elif config.COMM == 'AMQP':
             self.pub_channel.basic_publish(exchange=self.pub_topic, routing_key='', body=msg_pickle)
+        elif config.COMM == '0MQ':
+            self.pub_socket.send(msg_pickle)
 
     def on_connect(self, client, userdata, flags, rc):
         logger.info('Connecting to MQTT Server.')
@@ -145,3 +153,31 @@ class Communicator(object):
 
     def clean(self):
         self.sub_channel.stop_consuming()
+
+    # 0MQ Functionality below
+    # subscribe to server from clients
+    def client_to_server(self):
+        if self.index == config.K:
+            self.pub_socket = self.context.socket(zmq.PUB)
+            self.pub_socket.bind("tcp://*:%s" % self.port)
+            time.sleep(30)
+        else:
+            self.sub_socket = self.context.socket(zmq.SUB)
+            self.sub_socket.connect("tcp://" + self.host + ":" + str(self.port))
+            self.sub_socket.subscribe(b'')
+
+    # server subscribes to all clients
+    def server_to_client(self):
+        if self.index == config.K:
+            self.sub_socket = self.context.socket(zmq.SUB)
+            for i in config.CLIENTS_LIST:
+                self.sub_socket.connect("tcp://" + i + ":" + str(self.port))
+                self.sub_socket.subscribe(b'')
+        else:
+            self.pub_socket = self.context.socket(zmq.PUB)
+            self.pub_socket.bind("tcp://*:%s" % self.port)
+
+    def recv_msg_0mq(self):
+        # load message
+        while True:
+            self.q.put(pickle.loads(self.sub_socket.recv()))

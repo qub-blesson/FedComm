@@ -26,7 +26,7 @@ logger.info('Preparing Sever.')
 server = None
 if communicator == 'TCP':
     server = Server(0, config.SERVER_ADDR, config.SERVER_PORT, 'VGG5')
-elif communicator == 'MQTT' or communicator == 'AMQP':
+else:
     server = Server(config.K, config.SERVER_ADDR, config.SERVER_PORT, 'VGG5')
 server.initialize(first, LR)
 first = False
