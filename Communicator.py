@@ -62,7 +62,7 @@ class Communicator(object):
             # Create Q
             self.thread = threading.Thread(target=self.recv_msg_amqp)
             self.thread.start()
-        elif config.COMM == "0MQ":
+        elif config.COMM == '0MQ':
             self.context = zmq.Context()
             self.pub_socket = None
             self.sub_socket = None
@@ -157,7 +157,7 @@ class Communicator(object):
     # 0MQ Functionality below
     # subscribe to server from clients
     def client_to_server(self):
-        if self.index == config.K:
+        if self.client_id == config.K:
             self.pub_socket = self.context.socket(zmq.PUB)
             self.pub_socket.bind("tcp://*:%s" % self.port)
             time.sleep(30)
@@ -168,7 +168,7 @@ class Communicator(object):
 
     # server subscribes to all clients
     def server_to_client(self):
-        if self.index == config.K:
+        if self.client_id == config.K:
             self.sub_socket = self.context.socket(zmq.SUB)
             for i in config.CLIENTS_LIST:
                 self.sub_socket.connect("tcp://" + i + ":" + str(self.port))
