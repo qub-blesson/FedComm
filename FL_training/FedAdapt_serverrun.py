@@ -19,7 +19,8 @@ args = parser.parse_args()
 
 LR = config.LR
 communicator = args.communicator
-config.model_name = args.model
+if args.model != '':
+    config.model_name = args.model
 config.COMM = communicator
 
 if config.model_name == 'VGG5':
