@@ -17,7 +17,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--communicator', help='Communication protocol', default='TCP')
 parser.add_argument('--model', help='Model type', default='VGG8')
 args = parser.parse_args()
-config.model_name = args.model
+if args.model is not None:
+    config.model_name = args.model
 config.COMM = args.communicator
 
 if config.model_name == 'VGG5':
