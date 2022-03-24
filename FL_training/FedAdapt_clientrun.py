@@ -15,9 +15,14 @@ logger = logging.getLogger(__name__)
 sys.path.append('../')
 parser = argparse.ArgumentParser()
 parser.add_argument('--communicator', help='Communication protocol', default='TCP')
+parser.add_argument('--model', help='Model type', default='VGG8')
 args = parser.parse_args()
-
+config.model_name = args.model
 config.COMM = args.communicator
+
+if config.model_name == 'VGG5':
+    config.split_layer = [6, 6, 6, 6]
+    config.model_len = 7
 
 ip_address = config.HOST2IP[socket.gethostname()]
 index = config.CLIENTS_CONFIG[ip_address]
@@ -26,7 +31,7 @@ split_layer = config.split_layer[index]
 LR = config.LR
 
 logger.info('Preparing Client')
-client = Client(index, ip_address, config.SERVER_ADDR, config.SERVER_PORT, datalen, 'VGG5', split_layer)
+client = Client(index, ip_address, config.SERVER_ADDR, config.SERVER_PORT, datalen, split_layer)
 
 first = True  # First initialization control
 client.initialize(split_layer, first, LR)

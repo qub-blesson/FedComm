@@ -14,20 +14,27 @@ sys.path.append('../')
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--communicator', help='Communication protocol', default='TCP')
+parser.add_argument('--model', help='Model type', default='VGG8')
 args = parser.parse_args()
 
 LR = config.LR
 communicator = args.communicator
+config.model_name = args.model
 config.COMM = communicator
+
+if config.model_name == 'VGG5':
+    config.split_layer = [6, 6, 6, 6]
+    config.model_len = 7
+
 first = True  # First initialization control
 
 logger.info('Preparing Sever.')
 
 server = None
 if communicator == 'TCP':
-    server = Server(0, config.SERVER_ADDR, config.SERVER_PORT, 'VGG5')
+    server = Server(0, config.SERVER_ADDR, config.SERVER_PORT)
 else:
-    server = Server(config.K, config.SERVER_ADDR, config.SERVER_PORT, 'VGG5')
+    server = Server(config.K, config.SERVER_ADDR, config.SERVER_PORT)
 server.initialize(first, LR)
 first = False
 

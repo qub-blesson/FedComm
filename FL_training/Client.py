@@ -21,7 +21,7 @@ torch.manual_seed(0)
 
 
 class Client(Communicator):
-    def __init__(self, index, ip_address, server_addr, server_port, datalen, model_name, split_layer):
+    def __init__(self, index, ip_address, server_addr, server_port, datalen, split_layer):
         super(Client, self).__init__(index, ip_address, server_addr, server_port, sub_topic='fedserver',
                                      pub_topic='fedadapt', client_num=config.K)
         self.optimizer = None
@@ -30,8 +30,7 @@ class Client(Communicator):
         self.split_layer = None
         self.datalen = datalen
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.model_name = model_name
-        self.uninet = utils.get_model('Unit', self.model_name, config.model_len - 1, self.device, config.model_cfg)
+        self.uninet = utils.get_model('Unit', config.model_name, config.model_len - 1, self.device, config.model_cfg)
 
         if config.COMM == 'TCP':
             logger.info('Connecting to Server.')
@@ -44,7 +43,7 @@ class Client(Communicator):
             self.split_layer = split_layer
 
             logger.debug('Building Model.')
-            self.net = utils.get_model('Client', self.model_name, self.split_layer, self.device, config.model_cfg)
+            self.net = utils.get_model('Client', config.model_name, self.split_layer, self.device, config.model_cfg)
             logger.debug(self.net)
             self.criterion = nn.CrossEntropyLoss()
 
