@@ -14,9 +14,12 @@ sys.path.append('../')
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--communicator', help='Communication protocol', default='TCP')
-parser.add_argument('--model', help='Model type', default='VGG8')
+parser.add_argument('--model', help='Model type: VGG5, VGG8, VGG18', default='VGG8')
+parser.add_argument('--stress', help='Tool used to limit network or apply stress: cpu, net', default='')
+parser.add_argument('--limiter', help='Tool used to limit network or apply stress: 3G, 4G, Wi-Fi', default='')
 args = parser.parse_args()
-
+stress = args.stress
+limiter = args.limiter
 LR = config.LR
 communicator = args.communicator
 if args.model != '':
@@ -26,6 +29,8 @@ config.COMM = communicator
 if config.model_name == 'VGG5':
     config.split_layer = [6, 6, 6, 6]
     config.model_len = 7
+
+results = '../results/FedBench_'+config.COMM+'_'+limiter+'_'+stress+'_'+config.model_name+'.pkl'
 
 first = True  # First initialization control
 

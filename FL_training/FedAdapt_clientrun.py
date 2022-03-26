@@ -16,7 +16,12 @@ sys.path.append('../')
 parser = argparse.ArgumentParser()
 parser.add_argument('--communicator', help='Communication protocol', default='TCP')
 parser.add_argument('--model', help='Model type', default='VGG8')
+parser.add_argument('--stress', help='Tool used to limit network or apply stress: cpu, net', default=None)
+parser.add_argument('--limiter', help='Tool used to limit network or apply stress: 3G, 4G, Wi-Fi', default=None)
 args = parser.parse_args()
+stress = args.stress
+limiter = args.limiter
+
 if args.model != '':
     config.model_name = args.model
 config.COMM = args.communicator
@@ -24,6 +29,14 @@ config.COMM = args.communicator
 if config.model_name == 'VGG5':
     config.split_layer = [6, 6, 6, 6]
     config.model_len = 7
+
+if stress is not None:
+    utils.tools(stress)
+    os.system(utils.tools(stress))
+
+if limiter is not None:
+    os.system('sudo tc qdisc del dev ens160 root')
+    os.system(utils.tools(limiter))
 
 ip_address = config.HOST2IP[socket.gethostname()]
 index = config.CLIENTS_CONFIG[ip_address]
