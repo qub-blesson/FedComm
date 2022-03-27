@@ -31,12 +31,11 @@ if config.model_name == 'VGG5':
     config.model_len = 7
 
 if stress is not None:
-    utils.tools(stress)
-    os.system(utils.tools(stress))
+    os.system(utils.tools[stress])
 
 if limiter is not None:
     os.system('sudo tc qdisc del dev ens160 root')
-    os.system(utils.tools(limiter))
+    os.system(utils.tools[limiter])
 
 ip_address = config.HOST2IP[socket.gethostname()]
 index = config.CLIENTS_CONFIG[ip_address]
