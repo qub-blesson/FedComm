@@ -18,9 +18,12 @@ parser.add_argument('--communicator', help='Communication protocol', default='TC
 parser.add_argument('--model', help='Model type', default='VGG8')
 parser.add_argument('--stress', help='Tool used to limit network or apply stress: cpu, net', default=None)
 parser.add_argument('--limiter', help='Tool used to limit network or apply stress: 3G, 4G, Wi-Fi', default=None)
+parser.add_argument('--rounds', help='Number of training rounds', type=int, default=5)
 args = parser.parse_args()
 stress = args.stress
 limiter = args.limiter
+
+config.R = args.rounds
 
 if args.model != '':
     config.model_name = args.model
