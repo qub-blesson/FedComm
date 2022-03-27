@@ -15,10 +15,9 @@ HOST2IP = {'mars116XU': CLIENTS_LIST[0], 'mars117XU': CLIENTS_LIST[1], 'mars118X
            'mars119XU': CLIENTS_LIST[3]}
 CLIENTS_CONFIG = {CLIENTS_LIST[0]: 0, CLIENTS_LIST[1]: 1, CLIENTS_LIST[2]: 2, CLIENTS_LIST[3]: 3}
 
-# Dataset configration
+# Dataset configuration
 dataset_name = 'CIFAR10'
-home = sys.path[0].split('FedAdapt')[0] + 'FedAdapt'
-dataset_path = "../datasets/CIFAR10/"
+dataset_path = "../datasets/"+dataset_name
 N = 50000  # data length
 
 # train communication time

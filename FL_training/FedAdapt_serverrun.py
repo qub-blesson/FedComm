@@ -68,7 +68,7 @@ for r in range(config.R):
     test_acc = server.test(r)
     res['test_acc_record'].append(test_acc)
 
-    with open('../results/FedAdapt_res.pkl', 'wb') as f:
+    with open(results, 'wb') as f:
         pickle.dump(res, f)
 
     logger.info('Round Finish')
