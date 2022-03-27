@@ -34,9 +34,9 @@ torch.manual_seed(0)
 
 tools = {'cpu': 'stress-ng --cpu 1 --timeout 1500s',
          'net': 'temp',
-         '3G': 'sudo tc qdisc add dev ens160 root tbf rate 60mbit latency 50ms burst 1600',
+         'Wi-Fi': 'sudo tc qdisc add dev ens160 root tbf rate 60mbit latency 50ms burst 1600',
          '4G': 'sudo tc qdisc add dev ens160 root tbf rate 20mbit latency 50ms burst 1600',
-         'Wi-Fi': 'sudo tc qdisc add dev ens160 root tbf rate 5mbit latency 50ms burst 1600'}
+         '3G': 'sudo tc qdisc add dev ens160 root tbf rate 5mbit latency 50ms burst 1600'}
 
 
 def get_local_dataloader(CLIENT_IDEX, cpu_count):
