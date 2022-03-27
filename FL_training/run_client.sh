@@ -1,1 +1,1 @@
-python3 FedAdapt_clientrun.py --communicator "$1" --model "$2" --tool "$3" --stress "$4"
+python3 FedAdapt_clientrun.py --communicator "$1" --model "$2" --stress "$3" --limiter "$4"
