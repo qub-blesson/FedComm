@@ -15,8 +15,8 @@ sys.path.append('../')
 parser = argparse.ArgumentParser()
 parser.add_argument('--communicator', help='Communication protocol', default='TCP')
 parser.add_argument('--model', help='Model type: VGG5, VGG8, VGG18', default='VGG8')
-parser.add_argument('--stress', help='Tool used to limit network or apply stress: cpu, net', default='')
-parser.add_argument('--limiter', help='Tool used to limit network or apply stress: 3G, 4G, Wi-Fi', default='')
+parser.add_argument('--stress', help='Tool used to apply stress: cpu, net', default='')
+parser.add_argument('--limiter', help='Tool used to limit network: 3G, 4G, Wi-Fi', default='')
 args = parser.parse_args()
 stress = args.stress
 limiter = args.limiter
