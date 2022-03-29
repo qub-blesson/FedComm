@@ -7,17 +7,17 @@ COMM = 'TCP'
 SERVER_ADDR = '192.168.101.120'
 SERVER_PORT = 1883
 
-K = 4  # Number of devices
-
 # Unique clients order
 CLIENTS_LIST = ['192.168.101.116', '192.168.101.217', '192.168.101.218', '192.168.101.219']
 HOST2IP = {'mars116XU': CLIENTS_LIST[0], 'mars117XU': CLIENTS_LIST[1], 'mars118XU': CLIENTS_LIST[2],
            'mars119XU': CLIENTS_LIST[3]}
 CLIENTS_CONFIG = {CLIENTS_LIST[0]: 0, CLIENTS_LIST[1]: 1, CLIENTS_LIST[2]: 2, CLIENTS_LIST[3]: 3}
 
+K = len(CLIENTS_LIST)  # Number of devices
+
 # Dataset configuration
 dataset_name = 'CIFAR10'
-dataset_path = "../datasets/"+dataset_name
+dataset_path = "../datasets/" + dataset_name
 N = 50000  # data length
 
 # train communication time
@@ -44,7 +44,7 @@ model_cfg = {
              ('D', 128, 10, 1, 10, 128 * 10)]
 }
 model_name = 'VGG8'
-split_layer = [9, 9, 9, 9]  # Initial split layers
+split_layer = [9] * K
 model_len = 10
 
 # FL training configuration

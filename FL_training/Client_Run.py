@@ -30,7 +30,7 @@ if args.model != '':
 config.COMM = args.communicator
 
 if config.model_name == 'VGG5':
-    config.split_layer = [6, 6, 6, 6]
+    config.split_layer = [6] * config.K
     config.model_len = 7
 
 if stress is not None:
