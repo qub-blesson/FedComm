@@ -17,10 +17,13 @@ parser.add_argument('--communicator', help='Communication protocol', default='TC
 parser.add_argument('--model', help='Model type: VGG5, VGG8, VGG18', default='VGG8')
 parser.add_argument('--stress', help='Tool used to apply stress: cpu, net', default='')
 parser.add_argument('--limiter', help='Tool used to limit network: 3G, 4G, Wi-Fi', default='')
+parser.add_argument('--rounds', help='Number of training rounds', type=int, default=5)
 args = parser.parse_args()
 stress = args.stress
 limiter = args.limiter
 LR = config.LR
+config.R = args.rounds
+
 communicator = args.communicator
 if args.model != '':
     config.model_name = args.model
