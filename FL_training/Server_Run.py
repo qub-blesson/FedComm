@@ -30,7 +30,7 @@ if args.model != '':
 config.COMM = communicator
 
 if config.model_name == 'VGG5':
-    config.split_layer = [6, 6, 6, 6]
+    config.split_layer = [6] * config.K
     config.model_len = 7
 
 results = '../results/FedBench_'+config.COMM+'_'+limiter+'_'+stress+'_'+config.model_name+'.pkl'
@@ -66,7 +66,7 @@ for r in range(config.R):
     comp_time = 0
     for key in state:
         comp_time += state[key]
-    comp_time /= 4
+    comp_time /= config.K
     res['communication_time'].append(training_time - comp_time)
     test_acc = server.test(r)
     res['test_acc_record'].append(test_acc)
