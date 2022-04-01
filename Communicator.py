@@ -13,24 +13,26 @@ import zmq
 
 import Config
 
+# set log level
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 
+# Communicator between client/server
 class Communicator(object):
     def __init__(self, index, ip_address, host='0.0.0.0', port=1883, pub_topic='fedadapt', sub_topic='fedadapt',
                  client_num=0, user="server", password="password"):
         """
 
-        :param index:
-        :param ip_address:
-        :param host:
-        :param port:
-        :param pub_topic:
-        :param sub_topic:
-        :param client_num:
-        :param user:
-        :param password:
+        :param index: Unique ID
+        :param ip_address: IP address of calling client/server
+        :param host: Host server IP
+        :param port: Server port number
+        :param pub_topic: publish topic for MQTT, AMQP, ZMTP
+        :param sub_topic: subscribe topic for MQTT, AMQP, ZMTP
+        :param client_num: Client number
+        :param user: Username for AMQP
+        :param password: Password for AMQP
         """
         # all types
         self.ip = ip_address
@@ -40,9 +42,13 @@ class Communicator(object):
         self.port = port
         self.client_id = index
         self.index = None
+
+        # TCP specific setup
         if Config.COMM == 'TCP':
             self.sock = socket.socket()
+        # MQTT specific setup
         elif Config.COMM == 'MQTT':
+            # set topics and client number
             self.sub_topic = sub_topic
             self.pub_topic = pub_topic
             self.client_num = client_num
@@ -57,6 +63,7 @@ class Communicator(object):
             self.client.connect(host, port)
             # start communication
             self.client.loop_start()
+        # AMQP specific setup
         elif Config.COMM == 'AMQP':
             self.sub_channel = None
             self.user = user
@@ -74,21 +81,24 @@ class Communicator(object):
             # Create Q
             self.thread = threading.Thread(target=self.recv_msg_amqp)
             self.thread.start()
+        # ZMTP specific setup
         elif Config.COMM == '0MQ':
+            # create ZMTP context
             self.context = zmq.Context()
             self.pub_socket = None
             self.sub_socket = None
+            # Connect clients/server
             self.client_to_server()
             self.server_to_client()
+            # Create and start receive thread
             self.thread = threading.Thread(target=self.recv_msg_0mq)
             self.thread.start()
 
-    # TCP Functionality
+    """ TCP Functionality """
     def snd_msg_tcp(self, sock, msg):
         """
-
-        :param sock:
-        :param msg:
+        :param sock: TCP Socket of client
+        :param msg: Message to send to client
         """
         msg_pickle = pickle.dumps(msg)
         sock.sendall(struct.pack(">I", len(msg_pickle)))
@@ -97,16 +107,18 @@ class Communicator(object):
 
     def recv_msg(self, sock, expect_msg_type=None):
         """
+        Recieve message via TCP socket
 
-        :param sock:
-        :param expect_msg_type:
-        :return:
+        :param sock: Client socket
+        :param expect_msg_type: expected message ID / type
+        :return: message received
         """
         msg_len = struct.unpack(">I", sock.recv(4))[0]
         msg = sock.recv(msg_len, socket.MSG_WAITALL)
         msg = pickle.loads(msg)
         logger.debug(msg[0] + 'received from' + str(sock.getpeername()[0]) + ':' + str(sock.getpeername()[1]))
 
+        # error handling
         if expect_msg_type is not None:
             if msg[0] == 'Finish':
                 return msg
@@ -114,11 +126,12 @@ class Communicator(object):
                 raise Exception("Expected " + expect_msg_type + " but received " + msg[0])
         return msg
 
-    # MQTT functionality below
+    """ General functionality """
     def send_msg(self, msg):
         """
+        Send model params via MQTT, AMQP or ZMTP
 
-        :param msg:
+        :param msg: Message to send (model)
         """
         msg_pickle = pickle.dumps(msg)
         if Config.COMM == 'MQTT':
@@ -128,25 +141,29 @@ class Communicator(object):
         elif Config.COMM == '0MQ':
             self.pub_socket.send(msg_pickle)
 
+    """ MQTT functionality """
     def on_connect(self, client, userdata, flags, rc):
         """
+        Logs that device has connected to MQTT broker
 
-        :param client:
-        :param userdata:
-        :param flags:
-        :param rc:
+        :param client: Required, not needed
+        :param userdata: Required, not needed
+        :param flags: Required, not needed
+        :param rc: Required, not needed
         """
         logger.info('Connecting to MQTT Server.')
         self.client.subscribe(self.sub_topic)
+        # Send test message
         if self.client_id != Config.K:
             self.send_msg("1")
 
     def on_disconnect(self, client, userdata, rc):
         """
+        Log that user has disconnected
 
-        :param client:
-        :param userdata:
-        :param rc:
+        :param client: Required, not needed
+        :param userdata: Required, not needed
+        :param rc: Return code
         """
         logging.info("Client %d Disconnect result code: " + str(rc), self.client_id)
 
@@ -158,10 +175,11 @@ class Communicator(object):
     # equivalent to recv_msg
     def on_message_MQTT(self, client, userdata, message):
         """
+        Automatic handling of messages sent through the broker
 
-        :param client:
-        :param userdata:
-        :param message:
+        :param client: Required, not needed
+        :param userdata: Required, not needed
+        :param message: Message received
         """
         # load message and put into queue
         msg = pickle.loads(message.payload)
@@ -170,17 +188,17 @@ class Communicator(object):
     def on_subscribe(self, client, userdata, mid, granted_qos):
         """
 
-        :param client:
-        :param userdata:
-        :param mid:
-        :param granted_qos:
+        :param client: Required, not needed
+        :param userdata: Required, not needed
+        :param mid: Message ID
+        :param granted_qos: Required, not needed
         """
         print("Subscribe message id: " + str(mid))
 
-    # AMQP functionality below
+    """ AMQP functionality """
     def recv_msg_amqp(self):
         """
-
+        Receive message threaded loop
         """
         # create new consumer connection
         credentials = pika.PlainCredentials(self.user, 'password')
@@ -192,17 +210,19 @@ class Communicator(object):
         # Create queue for receiving messages
         res = self.sub_channel.queue_declare(queue='')
         q = res.method.queue
+        # bind queue and start listening
         self.sub_channel.queue_bind(exchange=self.sub_topic, queue=q)
         self.sub_channel.basic_consume(queue=q, on_message_callback=self.on_message_amqp, auto_ack=True)
         self.sub_channel.start_consuming()
 
     def on_message_amqp(self, ch, method, properties, body):
         """
+        Handling of received packets via AMQP
 
-        :param ch:
-        :param method:
-        :param properties:
-        :param body:
+        :param ch: Required, not needed
+        :param method: Required, not needed
+        :param properties: Required, not needed
+        :param body: message content
         """
         # load message and put into queue
         msg = pickle.loads(body)
@@ -216,15 +236,14 @@ class Communicator(object):
 
     def clean(self):
         """
-
+        Clean up AMQP, stops listening for messages
         """
         self.sub_channel.stop_consuming()
 
-    # 0MQ Functionality below
-    # subscribe to server from clients
+    """ 0MQ Functionality """
     def client_to_server(self):
         """
-
+        subscribe to server from clients
         """
         if self.client_id == Config.K:
             self.pub_socket = self.context.socket(zmq.PUB)
@@ -235,10 +254,9 @@ class Communicator(object):
             self.sub_socket.connect("tcp://" + self.host + ":" + str(self.port))
             self.sub_socket.subscribe(b'')
 
-    # server subscribes to all clients
     def server_to_client(self):
         """
-
+        server subscribes to all clients
         """
         if self.client_id == Config.K:
             self.sub_socket = self.context.socket(zmq.SUB)
@@ -251,7 +269,7 @@ class Communicator(object):
 
     def recv_msg_0mq(self):
         """
-
+        Receive and unpickle message sent via ZeroMQ (ZMTP)
         """
         # load message
         while True:
