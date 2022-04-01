@@ -13,7 +13,8 @@ HOST2IP = {'mars116XU': CLIENTS_LIST[0], 'mars117XU': CLIENTS_LIST[1], 'mars118X
            'mars119XU': CLIENTS_LIST[3]}
 CLIENTS_CONFIG = {CLIENTS_LIST[0]: 0, CLIENTS_LIST[1]: 1, CLIENTS_LIST[2]: 2, CLIENTS_LIST[3]: 3}
 
-K = len(CLIENTS_LIST)  # Number of devices
+# Number of devices
+K = len(CLIENTS_LIST)
 
 # Dataset configuration
 dataset_name = 'CIFAR10'
@@ -23,6 +24,7 @@ N = 50000  # data length
 # train communication time
 comm_time = 0.0
 
+# model configuration
 model_cfg = {
     # (Type, in_channels, out_channels, kernel_size, out_size(c_out*h*w), flops(c_out*h*w*k*k*c_in))
     'VGG5': [('C', 3, 32, 3, 32 * 32 * 32, 32 * 32 * 32 * 3 * 3 * 3),
@@ -43,6 +45,8 @@ model_cfg = {
              ('D', 8 * 8 * 128, 128, 1, 128, 128 * 8 * 8 * 128),
              ('D', 128, 10, 1, 10, 128 * 10)]
 }
+
+# model config values
 model_name = 'VGG8'
 split_layer = [9] * K
 model_len = 10
