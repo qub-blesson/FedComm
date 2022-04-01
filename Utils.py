@@ -19,8 +19,8 @@ import torchvision.transforms as transforms
 from torch.utils.data import DataLoader, Subset
 
 import pickle, struct, socket
-from vgg import *
-from config import *
+from Vgg import *
+from Config import *
 import collections
 import numpy as np
 

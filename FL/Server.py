@@ -18,8 +18,8 @@ import sys
 
 sys.path.append('../')
 from Communicator import *
-import utils
-import config
+import Utils
+import Config
 
 np.random.seed(0)
 torch.manual_seed(0)
@@ -28,7 +28,7 @@ torch.manual_seed(0)
 class Server(Communicator):
     def __init__(self, index, ip_address, server_port):
         super(Server, self).__init__(index, ip_address, ip_address, server_port, pub_topic="fedserver",
-                                     sub_topic='fedadapt', client_num=config.K)
+                                     sub_topic='fedbench', client_num=config.K)
         self.criterion = None
         self.optimizers = None
         self.nets = None
@@ -61,7 +61,7 @@ class Server(Communicator):
                                                     transform=self.transform_test)
         self.testloader = torch.utils.data.DataLoader(self.testset, batch_size=100, shuffle=False, num_workers=4)
 
-    def initialize(self, first, LR):
+    def initialize(self, first):
         if first:
             self.nets = {}
             self.optimizers = {}
@@ -78,7 +78,7 @@ class Server(Communicator):
         else:
             self.send_msg(msg)
 
-    def train(self, thread_number, client_ips):
+    def train(self):
         # Training start
 
         ttpi = {}  # Training time per iteration
@@ -113,7 +113,7 @@ class Server(Communicator):
 
         self.uninet.load_state_dict(aggregated_model)
 
-    def test(self, r):
+    def test(self):
         self.uninet.eval()
         test_loss = 0
         correct = 0
@@ -137,8 +137,8 @@ class Server(Communicator):
 
         return acc
 
-    def reinitialize(self, first, LR):
-        self.initialize(first, LR)
+    def reinitialize(self, first):
+        self.initialize(first)
 
     def finish(self, client_ips):
         msg = []

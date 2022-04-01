@@ -3,7 +3,7 @@ import torch
 import pickle
 import argparse
 from Server import Server
-import config
+import Config
 import logging
 import sys
 
@@ -21,7 +21,6 @@ parser.add_argument('--rounds', help='Number of training rounds', type=int, defa
 args = parser.parse_args()
 stress = args.stress
 limiter = args.limiter
-LR = config.LR
 config.R = args.rounds
 
 communicator = args.communicator
@@ -37,17 +36,13 @@ results = '../results/FedBench_'+config.COMM+'_'+limiter+'_'+stress+'_'+config.m
 
 first = True  # First initialization control
 
-logger.info('Preparing Sever.')
-
 server = None
 if communicator == 'TCP':
     server = Server(0, config.SERVER_ADDR, config.SERVER_PORT)
 else:
     server = Server(config.K, config.SERVER_ADDR, config.SERVER_PORT)
-server.initialize(first, LR)
+server.initialize(first)
 first = False
-
-logger.info('Classic FL Training')
 
 res = {'training_time': [], 'test_acc_record': [], 'communication_time': []}
 
@@ -56,7 +51,7 @@ for r in range(config.R):
     logger.info('==> Round {:} Start'.format(r))
 
     s_time = time.time()
-    state = server.train(thread_number=config.K, client_ips=config.CLIENTS_LIST)
+    state = server.train()
     server.aggregate(config.CLIENTS_LIST)
     e_time = time.time()
 
@@ -68,7 +63,7 @@ for r in range(config.R):
         comp_time += state[key]
     comp_time /= config.K
     res['communication_time'].append(training_time - comp_time)
-    test_acc = server.test(r)
+    test_acc = server.test()
     res['test_acc_record'].append(test_acc)
 
     with open(results, 'wb') as f:
@@ -80,9 +75,6 @@ for r in range(config.R):
 
     logger.info('==> Reinitialization for Round : {:}'.format(r + 1))
 
-    if r > 49:
-        LR = config.LR * 0.1
-
-    server.reinitialize(first, LR)
+    server.reinitialize(first)
     logger.info('==> Reinitialization Finish')
 comm_time = server.finish(config.CLIENTS_LIST)

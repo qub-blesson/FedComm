@@ -5,8 +5,8 @@ import multiprocessing
 import os
 import argparse
 from Client import Client
-import config
-import utils
+import Config
+import Utils
 import logging
 import sys
 
