@@ -11,6 +11,17 @@ class VGG(nn.Module):
         self.features, self.denses = self._make_layers(cfg[vgg_name])
         self._initialize_weights()
 
+    def forward(self, x):
+        if len(self.features) > 0:
+            out = self.features(x)
+        else:
+            out = x
+        if len(self.denses) > 0:
+            out = out.view(out.size(0), -1)
+            out = self.denses(out)
+
+        return out
+
     def _make_layers(self, cfg):
         features = []
         denses = []
