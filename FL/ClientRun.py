@@ -23,31 +23,31 @@ args = parser.parse_args()
 stress = args.stress
 limiter = args.limiter
 
-config.R = args.rounds
+Config.R = args.rounds
 
 if args.model != '':
-    config.model_name = args.model
-config.COMM = args.communicator
+    Config.model_name = args.model
+Config.COMM = args.communicator
 
-if config.model_name == 'VGG5':
-    config.split_layer = [6] * config.K
-    config.model_len = 7
+if Config.model_name == 'VGG5':
+    Config.split_layer = [6] * Config.K
+    Config.model_len = 7
 
 if stress is not None:
-    os.system(utils.tools[stress])
+    os.system(Utils.tools[stress])
 
 if limiter is not None:
     os.system('sudo tc qdisc del dev ens160 root')
-    os.system(utils.tools[limiter])
+    os.system(Utils.tools[limiter])
 
-ip_address = config.HOST2IP[socket.gethostname()]
-index = config.CLIENTS_CONFIG[ip_address]
-datalen = config.N / config.K
-split_layer = config.split_layer[index]
-LR = config.LR
+ip_address = Config.HOST2IP[socket.gethostname()]
+index = Config.CLIENTS_CONFIG[ip_address]
+datalen = Config.N / Config.K
+split_layer = Config.split_layer[index]
+LR = Config.LR
 
 logger.info('Preparing Client')
-client = Client(index, ip_address, config.SERVER_ADDR, config.SERVER_PORT, datalen, split_layer)
+client = Client(index, ip_address, Config.SERVER_ADDR, Config.SERVER_PORT, datalen, split_layer)
 
 first = True  # First initialization control
 client.initialize(split_layer, first, LR)
@@ -55,11 +55,11 @@ first = False
 
 logger.info('Preparing Data.')
 cpu_count = multiprocessing.cpu_count()
-trainloader, classes = utils.get_local_dataloader(index, cpu_count)
+trainloader, classes = Utils.get_local_dataloader(index, cpu_count)
 
 logger.info('Classic FL Training')
 
-for r in range(config.R):
+for r in range(Config.R):
     logger.info('====================================>')
     logger.info('ROUND: {} START'.format(r))
 
@@ -73,9 +73,9 @@ for r in range(config.R):
     s_time_rebuild = time.time()
 
     if r > 49:
-        LR = config.LR * 0.1
+        LR = Config.LR * 0.1
 
-    client.reinitialize(config.split_layer[index], first, LR)
+    client.reinitialize(Config.split_layer[index], first, LR)
     e_time_rebuild = time.time()
     logger.info('Rebuild time: ' + str(e_time_rebuild - s_time_rebuild))
     logger.info('==> Reinitialization Finish')

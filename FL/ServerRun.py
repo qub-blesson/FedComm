@@ -21,38 +21,38 @@ parser.add_argument('--rounds', help='Number of training rounds', type=int, defa
 args = parser.parse_args()
 stress = args.stress
 limiter = args.limiter
-config.R = args.rounds
+Config.R = args.rounds
 
 communicator = args.communicator
 if args.model != '':
-    config.model_name = args.model
-config.COMM = communicator
+    Config.model_name = args.model
+Config.COMM = communicator
 
-if config.model_name == 'VGG5':
-    config.split_layer = [6] * config.K
-    config.model_len = 7
+if Config.model_name == 'VGG5':
+    Config.split_layer = [6] * Config.K
+    Config.model_len = 7
 
-results = '../results/FedBench_'+config.COMM+'_'+limiter+'_'+stress+'_'+config.model_name+'.pkl'
+results = '../results/FedBench_'+Config.COMM+'_'+limiter+'_'+stress+'_'+Config.model_name+'.pkl'
 
 first = True  # First initialization control
 
 server = None
 if communicator == 'TCP':
-    server = Server(0, config.SERVER_ADDR, config.SERVER_PORT)
+    server = Server(0, Config.SERVER_ADDR, Config.SERVER_PORT)
 else:
-    server = Server(config.K, config.SERVER_ADDR, config.SERVER_PORT)
+    server = Server(Config.K, Config.SERVER_ADDR, Config.SERVER_PORT)
 server.initialize(first)
 first = False
 
 res = {'training_time': [], 'test_acc_record': [], 'communication_time': []}
 
-for r in range(config.R):
+for r in range(Config.R):
     logger.info('====================================>')
     logger.info('==> Round {:} Start'.format(r))
 
     s_time = time.time()
     state = server.train()
-    server.aggregate(config.CLIENTS_LIST)
+    server.aggregate(Config.CLIENTS_LIST)
     e_time = time.time()
 
     # Recording each round training time and test accuracy
@@ -61,7 +61,7 @@ for r in range(config.R):
     comp_time = 0
     for key in state:
         comp_time += state[key]
-    comp_time /= config.K
+    comp_time /= Config.K
     res['communication_time'].append(training_time - comp_time)
     test_acc = server.test()
     res['test_acc_record'].append(test_acc)
@@ -77,4 +77,4 @@ for r in range(config.R):
 
     server.reinitialize(first)
     logger.info('==> Reinitialization Finish')
-comm_time = server.finish(config.CLIENTS_LIST)
+comm_time = server.finish(Config.CLIENTS_LIST)

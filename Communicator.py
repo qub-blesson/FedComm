@@ -28,9 +28,9 @@ class Communicator(object):
         self.port = port
         self.client_id = index
         self.index = None
-        if config.COMM == 'TCP':
+        if Config.COMM == 'TCP':
             self.sock = socket.socket()
-        elif config.COMM == 'MQTT':
+        elif Config.COMM == 'MQTT':
             self.sub_topic = sub_topic
             self.pub_topic = pub_topic
             self.client_num = client_num
@@ -45,7 +45,7 @@ class Communicator(object):
             self.client.connect(host, port)
             # start communication
             self.client.loop_start()
-        elif config.COMM == 'AMQP':
+        elif Config.COMM == 'AMQP':
             self.sub_channel = None
             self.user = user
             # Create connection to AMQP server
@@ -62,7 +62,7 @@ class Communicator(object):
             # Create Q
             self.thread = threading.Thread(target=self.recv_msg_amqp)
             self.thread.start()
-        elif config.COMM == '0MQ':
+        elif Config.COMM == '0MQ':
             self.context = zmq.Context()
             self.pub_socket = None
             self.sub_socket = None
@@ -94,17 +94,17 @@ class Communicator(object):
     # MQTT functionality below
     def send_msg(self, msg):
         msg_pickle = pickle.dumps(msg)
-        if config.COMM == 'MQTT':
+        if Config.COMM == 'MQTT':
             self.client.publish(self.pub_topic, msg_pickle)
-        elif config.COMM == 'AMQP':
+        elif Config.COMM == 'AMQP':
             self.pub_channel.basic_publish(exchange=self.pub_topic, routing_key='', body=msg_pickle)
-        elif config.COMM == '0MQ':
+        elif Config.COMM == '0MQ':
             self.pub_socket.send(msg_pickle)
 
     def on_connect(self, client, userdata, flags, rc):
         logger.info('Connecting to MQTT Server.')
         self.client.subscribe(self.sub_topic)
-        if self.client_id != config.K:
+        if self.client_id != Config.K:
             self.send_msg("1")
 
     def on_disconnect(self, client, userdata, rc):
@@ -157,7 +157,7 @@ class Communicator(object):
     # 0MQ Functionality below
     # subscribe to server from clients
     def client_to_server(self):
-        if self.client_id == config.K:
+        if self.client_id == Config.K:
             self.pub_socket = self.context.socket(zmq.PUB)
             self.pub_socket.bind("tcp://*:%s" % self.port)
             time.sleep(30)
@@ -168,9 +168,9 @@ class Communicator(object):
 
     # server subscribes to all clients
     def server_to_client(self):
-        if self.client_id == config.K:
+        if self.client_id == Config.K:
             self.sub_socket = self.context.socket(zmq.SUB)
-            for i in config.CLIENTS_LIST:
+            for i in Config.CLIENTS_LIST:
                 self.sub_socket.connect("tcp://" + i + ":" + str(self.port))
                 self.sub_socket.subscribe(b'')
         else:

@@ -28,51 +28,51 @@ torch.manual_seed(0)
 class Server(Communicator):
     def __init__(self, index, ip_address, server_port):
         super(Server, self).__init__(index, ip_address, ip_address, server_port, pub_topic="fedserver",
-                                     sub_topic='fedbench', client_num=config.K)
+                                     sub_topic='fedbench', client_num=Config.K)
         self.criterion = None
         self.optimizers = None
         self.nets = None
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.port = server_port
 
-        if config.COMM == 'TCP':
+        if Config.COMM == 'TCP':
             self.sock.bind((self.ip, self.port))
             self.client_socks = {}
 
-            while len(self.client_socks) < config.K:
+            while len(self.client_socks) < Config.K:
                 self.sock.listen(5)
                 logger.info("Waiting Incoming Connections.")
                 (client_sock, (ip, port)) = self.sock.accept()
                 logger.info('Got connection from ' + str(ip))
                 self.client_socks[str(ip)] = client_sock
-        elif config.COMM == 'MQTT' or config.COMM == 'AMQP':
+        elif Config.COMM == 'MQTT' or Config.COMM == 'AMQP':
             connections = 0
-            while connections < config.K:
+            while connections < Config.K:
                 connections += int(self.q.get())
 
             logger.info("Clients have connected")
 
-        self.uninet = utils.get_model('Unit', config.model_name, config.model_len - 1, self.device, config.model_cfg)
+        self.uninet = Utils.get_model('Unit', Config.model_name, Config.model_len - 1, self.device, Config.model_cfg)
 
         self.transform_test = transforms.Compose(
             [transforms.ToTensor(), transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
              ])
-        self.testset = torchvision.datasets.CIFAR10(root=config.dataset_path, train=False, download=False,
+        self.testset = torchvision.datasets.CIFAR10(root=Config.dataset_path, train=False, download=False,
                                                     transform=self.transform_test)
-        self.testloader = torch.utils.data.DataLoader(self.testset, batch_size=100, shuffle=False, num_workers=4)
+        self.testloader = torch.Utils.data.DataLoader(self.testset, batch_size=100, shuffle=False, num_workers=4)
 
     def initialize(self, first):
         if first:
             self.nets = {}
             self.optimizers = {}
-            for i in range(len(config.split_layer)):
-                client_ip = config.CLIENTS_LIST[i]
-                self.nets[client_ip] = utils.get_model('Server', config.model_name, config.split_layer[i], self.device,
-                                                       config.model_cfg)
+            for i in range(len(Config.split_layer)):
+                client_ip = Config.CLIENTS_LIST[i]
+                self.nets[client_ip] = Utils.get_model('Server', Config.model_name, Config.split_layer[i], self.device,
+                                                       Config.model_cfg)
             self.criterion = nn.CrossEntropyLoss()
 
         msg = ['MSG_INITIAL_GLOBAL_WEIGHTS_SERVER_TO_CLIENT', self.uninet.state_dict()]
-        if config.COMM == 'TCP':
+        if Config.COMM == 'TCP':
             for i in self.client_socks:
                 self.snd_msg_tcp(self.client_socks[i], msg)
         else:
@@ -82,13 +82,13 @@ class Server(Communicator):
         # Training start
 
         ttpi = {}  # Training time per iteration
-        if config.COMM == 'TCP':
+        if Config.COMM == 'TCP':
             for s in self.client_socks:
                 msg = self.recv_msg(self.client_socks[s], 'MSG_TRAINING_TIME_PER_ITERATION')
                 ttpi[msg[1]] = msg[2]
         else:
             connections = 0
-            while connections != config.K:
+            while connections != Config.K:
                 msg = self.q.get()
                 while msg[0] != 'MSG_TRAINING_TIME_PER_ITERATION':
                     self.q.put(msg)
@@ -101,15 +101,15 @@ class Server(Communicator):
         w_local_list = []
         for i in range(len(client_ips)):
             msg = None
-            if config.COMM == 'TCP':
+            if Config.COMM == 'TCP':
                 msg = self.recv_msg(self.client_socks[client_ips[i]], 'MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER')
             else:
                 while msg is None:
                     msg = self.q.get()
-            w_local = (msg[1], config.N / config.K)
+            w_local = (msg[1], Config.N / Config.K)
             w_local_list.append(w_local)
-        zero_model = utils.zero_init(self.uninet).state_dict()
-        aggregated_model = utils.fed_avg(zero_model, w_local_list, config.N)
+        zero_model = Utils.zero_init(self.uninet).state_dict()
+        aggregated_model = Utils.fed_avg(zero_model, w_local_list, Config.N)
 
         self.uninet.load_state_dict(aggregated_model)
 
@@ -133,7 +133,7 @@ class Server(Communicator):
         logger.info('Test Accuracy: {}'.format(acc))
 
         # Save checkpoint.
-        torch.save(self.uninet.state_dict(), './' + config.model_name + '.pth')
+        torch.save(self.uninet.state_dict(), './' + Config.model_name + '.pth')
 
         return acc
 
@@ -142,12 +142,12 @@ class Server(Communicator):
 
     def finish(self, client_ips):
         msg = []
-        if config.COMM == 'TCP':
+        if Config.COMM == 'TCP':
             for i in range(len(client_ips)):
                 msg.append(self.recv_msg(self.client_socks[client_ips[i]], 'MSG_COMMUNICATION_TIME')[1])
         else:
             connections = 0
-            while connections != config.K:
+            while connections != Config.K:
                 msg.append(self.q.get()[1])
                 connections += 1
             self.send_msg(['DONE'])
