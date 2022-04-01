@@ -41,6 +41,7 @@ LR = Config.LR
 
 if stress is not None:
     if stress == 'cpu':# or int(ip_address[:-1]) % 2 == 0:
+        os.system('sudo test')
         os.system(Utils.tools[stress])
     else:
         #host =
