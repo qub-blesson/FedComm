@@ -11,27 +11,31 @@ import numpy as np
 
 import logging
 
+# set log level
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 import sys
 
+# include all files to path
 sys.path.append('../')
 from Communicator import *
 import Utils
 import Config
 
+# set seed
 np.random.seed(0)
 torch.manual_seed(0)
 
-
+# server class
 class Server(Communicator):
     def __init__(self, index, ip_address, server_port):
         """
+        Initialise server
 
-        :param index:
-        :param ip_address:
-        :param server_port:
+        :param index: unique ID for server
+        :param ip_address: Server address
+        :param server_port: Port to host server on
         """
         super(Server, self).__init__(index, ip_address, ip_address, server_port, pub_topic="fedserver",
                                      sub_topic='fedbench', client_num=Config.K)
@@ -41,6 +45,7 @@ class Server(Communicator):
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.port = server_port
 
+        # wait for incoming connections via various application layer protocols
         logger.info("Waiting For Incoming Connections.")
         if Config.COMM == 'TCP':
             self.sock.bind((self.ip, self.port))
@@ -58,6 +63,7 @@ class Server(Communicator):
 
             logger.info("Clients have connected")
 
+        # get initial model for server
         self.uninet = Utils.get_model('Unit', Config.model_name, Config.model_len - 1, self.device, Config.model_cfg)
 
         self.transform_test = transforms.Compose(
@@ -69,8 +75,9 @@ class Server(Communicator):
 
     def initialize(self, first):
         """
+        Initialise federated learning process for server
 
-        :param first:
+        :param first: Indicates first initial round
         """
         if first:
             self.nets = {}
@@ -81,6 +88,7 @@ class Server(Communicator):
                                                        Config.model_cfg)
             self.criterion = nn.CrossEntropyLoss()
 
+        # send initial weights to all clients
         msg = ['MSG_INITIAL_GLOBAL_WEIGHTS_SERVER_TO_CLIENT', self.uninet.state_dict()]
         if Config.COMM == 'TCP':
             for i in self.client_socks:
@@ -90,8 +98,9 @@ class Server(Communicator):
 
     def train(self):
         """
+        Get training time per client
 
-        :return:
+        :return: training time per iteration
         """
         # Training start
 
@@ -113,8 +122,9 @@ class Server(Communicator):
 
     def aggregate(self, client_ips):
         """
+        combines weights into a single model to send out to clients next round
 
-        :param client_ips:
+        :param client_ips: ip of all clients in FL process
         """
         w_local_list = []
         for i in range(len(client_ips)):
@@ -127,14 +137,17 @@ class Server(Communicator):
             w_local = (msg[1], Config.N / Config.K)
             w_local_list.append(w_local)
         zero_model = Utils.zero_init(self.uninet).state_dict()
+        # average the model weights
         aggregated_model = Utils.fed_avg(zero_model, w_local_list, Config.N)
 
+        # load model with new aggregated weights
         self.uninet.load_state_dict(aggregated_model)
 
     def test(self):
         """
+        test the new model and get the accuracy
 
-        :return:
+        :return: Accuracy from testing
         """
         self.uninet.eval()
         test_loss = 0
@@ -161,15 +174,17 @@ class Server(Communicator):
 
     def reinitialize(self, first):
         """
+        Calls initialize for rounds 1+
 
-        :param first:
+        :param first: Indicate initial starting round
         """
         self.initialize(first)
 
     def finish(self, client_ips):
         """
+        Finish FL process from server
 
-        :param client_ips:
+        :param client_ips: ip of all clients to send finish statement/message
         :return:
         """
         msg = []
