@@ -11,6 +11,7 @@ class VGG(nn.Module):
         self.features, self.denses = self._make_layers(cfg[vgg_name])
         self._initialize_weights()
 
+    # make a forward pass
     def forward(self, x):
         if len(self.features) > 0:
             out = self.features(x)
@@ -22,6 +23,7 @@ class VGG(nn.Module):
 
         return out
 
+    # make convolutional layers
     def _make_layers(self, cfg):
         features = []
         denses = []
@@ -48,6 +50,7 @@ class VGG(nn.Module):
 
         return nn.Sequential(*features), nn.Sequential(*denses)
 
+    # initialise starting weights
     def _initialize_weights(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
