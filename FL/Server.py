@@ -35,13 +35,13 @@ class Server(Communicator):
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.port = server_port
 
+        logger.info("Waiting For Incoming Connections.")
         if Config.COMM == 'TCP':
             self.sock.bind((self.ip, self.port))
             self.client_socks = {}
 
             while len(self.client_socks) < Config.K:
                 self.sock.listen(5)
-                logger.info("Waiting Incoming Connections.")
                 (client_sock, (ip, port)) = self.sock.accept()
                 logger.info('Got connection from ' + str(ip))
                 self.client_socks[str(ip)] = client_sock
@@ -59,7 +59,7 @@ class Server(Communicator):
              ])
         self.testset = torchvision.datasets.CIFAR10(root=Config.dataset_path, train=False, download=False,
                                                     transform=self.transform_test)
-        self.testloader = torch.Utils.data.DataLoader(self.testset, batch_size=100, shuffle=False, num_workers=4)
+        self.testloader = torch.utils.data.DataLoader(self.testset, batch_size=100, shuffle=False, num_workers=4)
 
     def initialize(self, first):
         if first:

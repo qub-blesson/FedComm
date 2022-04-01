@@ -1,13 +1,12 @@
+import sys
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import tqdm
-import time
-import numpy as np
-import sys
 
 sys.path.append('../')
-import Config
 import Utils
 from Communicator import *
 
@@ -21,7 +20,7 @@ torch.manual_seed(0)
 
 
 class Client(Communicator):
-    def __init__(self, index, ip_address, server_addr, server_port, datalen, split_layer):
+    def __init__(self, index, ip_address, server_addr, server_port, datalen):
         super(Client, self).__init__(index, ip_address, server_addr, server_port, sub_topic='fedserver',
                                      pub_topic='fedbench', client_num=Config.K)
         self.optimizer = None

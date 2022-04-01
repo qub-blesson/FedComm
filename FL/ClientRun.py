@@ -47,7 +47,7 @@ split_layer = Config.split_layer[index]
 LR = Config.LR
 
 logger.info('Preparing Client')
-client = Client(index, ip_address, Config.SERVER_ADDR, Config.SERVER_PORT, datalen, split_layer)
+client = Client(index, ip_address, Config.SERVER_ADDR, Config.SERVER_PORT, datalen)
 
 first = True  # First initialization control
 client.initialize(split_layer, first, LR)
