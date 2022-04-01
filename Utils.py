@@ -19,12 +19,15 @@ import numpy as np
 
 import logging
 
+# set log level
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+# set seed
 np.random.seed(0)
 torch.manual_seed(0)
 
+# establish tools to be used throughout FL process
 tools = {'cpu': 'stress-ng --cpu 1 --timeout 1500s &',
          'net1': 'netstress -m host &',
          'Wi-Fi': 'sudo tc qdisc add dev ens160 root tbf rate 60mbit latency 50ms burst 1600 &',
@@ -32,15 +35,16 @@ tools = {'cpu': 'stress-ng --cpu 1 --timeout 1500s &',
          '3G': 'sudo tc qdisc add dev ens160 root tbf rate 5mbit latency 50ms burst 1600 &'}
 
 
-def get_local_dataloader(CLIENT_IDEX, cpu_count):
+def get_local_dataloader(CLIENT_INDEX, cpu_count):
     """
+    Load local data
 
-    :param CLIENT_IDEX:
-    :param cpu_count:
+    :param CLIENT_INDEX: Unique client ID
+    :param cpu_count: Number of CPUs to load data
     :return:
     """
     indices = list(range(N))
-    part_tr = indices[int((N / K) * CLIENT_IDEX): int((N / K) * (CLIENT_IDEX + 1))]
+    part_tr = indices[int((N / K) * CLIENT_INDEX): int((N / K) * (CLIENT_INDEX + 1))]
 
     transform_train = transforms.Compose([
         transforms.RandomCrop(32, padding=4),
@@ -59,15 +63,15 @@ def get_local_dataloader(CLIENT_IDEX, cpu_count):
     return trainloader, classes
 
 
+# Get FL model to operate on
 def get_model(location, model_name, layer, device, cfg):
     """
-
-    :param location:
-    :param model_name:
-    :param layer:
-    :param device:
-    :param cfg:
-    :return:
+    :param location: Model location
+    :param model_name: Model type: VGG5, VGG8, VGG...
+    :param layer: Split layer value
+    :param device: CPU or GPU or otherwise
+    :param cfg: Model configuration
+    :return: Fetched model
     """
     cfg = cfg.copy()
     net = VGG(location, model_name, layer, cfg)
@@ -78,10 +82,11 @@ def get_model(location, model_name, layer, device, cfg):
 
 def concat_weights_client(weights, sweights):
     """
+    Concatenates the weights received via UDP and fills in the missing sections using the current model arrangements
 
-    :param weights:
-    :param sweights:
-    :return:
+    :param weights: Current model weights
+    :param sweights: Newly received model weights
+    :return: New model with the missing parts filled in
     """
     concat_dict = collections.OrderedDict()
 
@@ -95,13 +100,10 @@ def concat_weights_client(weights, sweights):
         if not concat_dict[key]:
             concat_dict[key] = sweights[key]
             continue
-            # concat_dict[key] = torch.from_numpy(np.zeros(sweights[key].numel()))
         if concat_dict[key][0].numel() == 1:
             concat_dict[key] = concat_dict[key][0]
             continue
         if torch.cat(concat_dict[key]).size()[0] < sweights[key].numel():
-            # length = len(concat_dict[key])
-            # concat_dict[key].append(sweights[key][length:])
             concat_dict[key].append(torch.from_numpy(np.zeros((sweights[key].numel()) - torch.cat(concat_dict[key]).size()[0])))
         concat_dict[key] = torch.cat(concat_dict[key])
         if concat_dict[key].size()[0] > sweights[key].numel():
@@ -111,12 +113,8 @@ def concat_weights_client(weights, sweights):
     return concat_dict
 
 
+# First init of model
 def zero_init(net):
-    """
-
-    :param net:
-    :return:
-    """
     for m in net.modules():
         if isinstance(m, nn.Conv2d):
             init.zeros_(m.weight)
