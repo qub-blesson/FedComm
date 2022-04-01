@@ -21,6 +21,14 @@ torch.manual_seed(0)
 
 class Client(Communicator):
     def __init__(self, index, ip_address, server_addr, server_port, datalen):
+        """
+
+        :param index:
+        :param ip_address:
+        :param server_addr:
+        :param server_port:
+        :param datalen:
+        """
         super(Client, self).__init__(index, ip_address, server_addr, server_port, sub_topic='fedserver',
                                      pub_topic='fedbench', client_num=Config.K)
         self.optimizer = None
@@ -38,6 +46,12 @@ class Client(Communicator):
             self.send_msg("1")
 
     def initialize(self, split_layer, first, LR):
+        """
+
+        :param split_layer:
+        :param first:
+        :param LR:
+        """
         if first:
             self.split_layer = split_layer
 
@@ -58,6 +72,10 @@ class Client(Communicator):
         logger.debug('Initialize Finished')
 
     def train(self, trainloader):
+        """
+
+        :param trainloader:
+        """
         # Training start
         s_time_total = time.time()
         self.net.to(self.device)
@@ -80,6 +98,9 @@ class Client(Communicator):
             self.send_msg(msg)
 
     def upload(self):
+        """
+
+        """
         msg = ['MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER', self.net.cpu().state_dict()]
         start = time.time()
         if Config.COMM == 'TCP':
@@ -89,6 +110,12 @@ class Client(Communicator):
         Config.comm_time += (time.time() - start)
 
     def reinitialize(self, split_layers, first, LR):
+        """
+
+        :param split_layers:
+        :param first:
+        :param LR:
+        """
         self.initialize(split_layers, first, LR)
 
     def finish(self):

@@ -33,6 +33,12 @@ tools = {'cpu': 'stress-ng --cpu 1 --timeout 1500s &',
 
 
 def get_local_dataloader(CLIENT_IDEX, cpu_count):
+    """
+
+    :param CLIENT_IDEX:
+    :param cpu_count:
+    :return:
+    """
     indices = list(range(N))
     part_tr = indices[int((N / K) * CLIENT_IDEX): int((N / K) * (CLIENT_IDEX + 1))]
 
@@ -54,6 +60,15 @@ def get_local_dataloader(CLIENT_IDEX, cpu_count):
 
 
 def get_model(location, model_name, layer, device, cfg):
+    """
+
+    :param location:
+    :param model_name:
+    :param layer:
+    :param device:
+    :param cfg:
+    :return:
+    """
     cfg = cfg.copy()
     net = VGG(location, model_name, layer, cfg)
     net = net.to(device)
@@ -62,6 +77,12 @@ def get_model(location, model_name, layer, device, cfg):
 
 
 def concat_weights_client(weights, sweights):
+    """
+
+    :param weights:
+    :param sweights:
+    :return:
+    """
     concat_dict = collections.OrderedDict()
 
     for weight in sweights:
@@ -91,6 +112,11 @@ def concat_weights_client(weights, sweights):
 
 
 def zero_init(net):
+    """
+
+    :param net:
+    :return:
+    """
     for m in net.modules():
         if isinstance(m, nn.Conv2d):
             init.zeros_(m.weight)
@@ -109,6 +135,13 @@ def zero_init(net):
 
 
 def fed_avg(zero_model, w_local_list, totoal_data_size):
+    """
+
+    :param zero_model:
+    :param w_local_list:
+    :param totoal_data_size:
+    :return:
+    """
     keys = w_local_list[0][0].keys()
 
     for k in keys:

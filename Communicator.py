@@ -20,6 +20,18 @@ logger = logging.getLogger(__name__)
 class Communicator(object):
     def __init__(self, index, ip_address, host='0.0.0.0', port=1883, pub_topic='fedadapt', sub_topic='fedadapt',
                  client_num=0, user="server", password="password"):
+        """
+
+        :param index:
+        :param ip_address:
+        :param host:
+        :param port:
+        :param pub_topic:
+        :param sub_topic:
+        :param client_num:
+        :param user:
+        :param password:
+        """
         # all types
         self.ip = ip_address
         self.client = None
@@ -73,12 +85,23 @@ class Communicator(object):
 
     # TCP Functionality
     def snd_msg_tcp(self, sock, msg):
+        """
+
+        :param sock:
+        :param msg:
+        """
         msg_pickle = pickle.dumps(msg)
         sock.sendall(struct.pack(">I", len(msg_pickle)))
         sock.sendall(msg_pickle)
         logger.debug(msg[0] + 'sent to' + str(sock.getpeername()[0]) + ':' + str(sock.getpeername()[1]))
 
     def recv_msg(self, sock, expect_msg_type=None):
+        """
+
+        :param sock:
+        :param expect_msg_type:
+        :return:
+        """
         msg_len = struct.unpack(">I", sock.recv(4))[0]
         msg = sock.recv(msg_len, socket.MSG_WAITALL)
         msg = pickle.loads(msg)
@@ -93,6 +116,10 @@ class Communicator(object):
 
     # MQTT functionality below
     def send_msg(self, msg):
+        """
+
+        :param msg:
+        """
         msg_pickle = pickle.dumps(msg)
         if Config.COMM == 'MQTT':
             self.client.publish(self.pub_topic, msg_pickle)
@@ -102,12 +129,25 @@ class Communicator(object):
             self.pub_socket.send(msg_pickle)
 
     def on_connect(self, client, userdata, flags, rc):
+        """
+
+        :param client:
+        :param userdata:
+        :param flags:
+        :param rc:
+        """
         logger.info('Connecting to MQTT Server.')
         self.client.subscribe(self.sub_topic)
         if self.client_id != Config.K:
             self.send_msg("1")
 
     def on_disconnect(self, client, userdata, rc):
+        """
+
+        :param client:
+        :param userdata:
+        :param rc:
+        """
         logging.info("Client %d Disconnect result code: " + str(rc), self.client_id)
 
     def __del__(self):
@@ -117,15 +157,31 @@ class Communicator(object):
 
     # equivalent to recv_msg
     def on_message_MQTT(self, client, userdata, message):
+        """
+
+        :param client:
+        :param userdata:
+        :param message:
+        """
         # load message and put into queue
         msg = pickle.loads(message.payload)
         self.q.put(msg)
 
     def on_subscribe(self, client, userdata, mid, granted_qos):
+        """
+
+        :param client:
+        :param userdata:
+        :param mid:
+        :param granted_qos:
+        """
         print("Subscribe message id: " + str(mid))
 
     # AMQP functionality below
     def recv_msg_amqp(self):
+        """
+
+        """
         # create new consumer connection
         credentials = pika.PlainCredentials(self.user, 'password')
         connection = pika.BlockingConnection(pika.ConnectionParameters(
@@ -141,6 +197,13 @@ class Communicator(object):
         self.sub_channel.start_consuming()
 
     def on_message_amqp(self, ch, method, properties, body):
+        """
+
+        :param ch:
+        :param method:
+        :param properties:
+        :param body:
+        """
         # load message and put into queue
         msg = pickle.loads(body)
         self.q.put(msg)
@@ -152,11 +215,17 @@ class Communicator(object):
                 self.clean()
 
     def clean(self):
+        """
+
+        """
         self.sub_channel.stop_consuming()
 
     # 0MQ Functionality below
     # subscribe to server from clients
     def client_to_server(self):
+        """
+
+        """
         if self.client_id == Config.K:
             self.pub_socket = self.context.socket(zmq.PUB)
             self.pub_socket.bind("tcp://*:%s" % self.port)
@@ -168,6 +237,9 @@ class Communicator(object):
 
     # server subscribes to all clients
     def server_to_client(self):
+        """
+
+        """
         if self.client_id == Config.K:
             self.sub_socket = self.context.socket(zmq.SUB)
             for i in Config.CLIENTS_LIST:
@@ -178,6 +250,9 @@ class Communicator(object):
             self.pub_socket.bind("tcp://*:%s" % self.port)
 
     def recv_msg_0mq(self):
+        """
+
+        """
         # load message
         while True:
             self.q.put(pickle.loads(self.sub_socket.recv()))

@@ -27,6 +27,12 @@ torch.manual_seed(0)
 
 class Server(Communicator):
     def __init__(self, index, ip_address, server_port):
+        """
+
+        :param index:
+        :param ip_address:
+        :param server_port:
+        """
         super(Server, self).__init__(index, ip_address, ip_address, server_port, pub_topic="fedserver",
                                      sub_topic='fedbench', client_num=Config.K)
         self.criterion = None
@@ -62,6 +68,10 @@ class Server(Communicator):
         self.testloader = torch.utils.data.DataLoader(self.testset, batch_size=100, shuffle=False, num_workers=4)
 
     def initialize(self, first):
+        """
+
+        :param first:
+        """
         if first:
             self.nets = {}
             self.optimizers = {}
@@ -79,6 +89,10 @@ class Server(Communicator):
             self.send_msg(msg)
 
     def train(self):
+        """
+
+        :return:
+        """
         # Training start
 
         ttpi = {}  # Training time per iteration
@@ -98,6 +112,10 @@ class Server(Communicator):
         return ttpi
 
     def aggregate(self, client_ips):
+        """
+
+        :param client_ips:
+        """
         w_local_list = []
         for i in range(len(client_ips)):
             msg = None
@@ -114,6 +132,10 @@ class Server(Communicator):
         self.uninet.load_state_dict(aggregated_model)
 
     def test(self):
+        """
+
+        :return:
+        """
         self.uninet.eval()
         test_loss = 0
         correct = 0
@@ -138,9 +160,18 @@ class Server(Communicator):
         return acc
 
     def reinitialize(self, first):
+        """
+
+        :param first:
+        """
         self.initialize(first)
 
     def finish(self, client_ips):
+        """
+
+        :param client_ips:
+        :return:
+        """
         msg = []
         if Config.COMM == 'TCP':
             for i in range(len(client_ips)):
