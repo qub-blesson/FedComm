@@ -1,16 +1,9 @@
-'''Some helper functions for FedAdapt, including:
-	- get_local_dataloader: split dataset and get respective dataloader.
-	- get_model: build the model according to location and split layer.
-	- send_msg: send msg with type checking.
-	- recv_msg: receive msg with type checking.
-	- split_weights_client: split client's weights from holistic weights.
-	- split_weights_server: split server's weights from holistic weights
-	- concat_weights: concatenate server's weights and client's weights.
-	- zero_init: zero initialization.
-	- fed_avg: FedAvg aggregation.
-	- norm_list: normlize each item in a list with sum.
-	- str2bool.
-'''
+"""Some helper functions for FedAdapt, including:
+- get_local_dataloader: split dataset and get respective dataloader.
+- get_model: build the model according to location and split layer.
+- zero_init: zero initialization.
+- fed_avg: FedAvg aggregation.
+"""
 import torch
 import torch.nn as nn
 import torch.nn.init as init
@@ -32,11 +25,11 @@ logger = logging.getLogger(__name__)
 np.random.seed(0)
 torch.manual_seed(0)
 
-tools = {'cpu': 'stress-ng --cpu 1 --timeout 1500s',
-         'net': 'temp',
-         'Wi-Fi': 'sudo tc qdisc add dev ens160 root tbf rate 60mbit latency 50ms burst 1600',
-         '4G': 'sudo tc qdisc add dev ens160 root tbf rate 20mbit latency 50ms burst 1600',
-         '3G': 'sudo tc qdisc add dev ens160 root tbf rate 5mbit latency 50ms burst 1600'}
+tools = {'cpu': 'stress-ng --cpu 1 --timeout 1500s &',
+         'net1': 'netstress -m host &',
+         'Wi-Fi': 'sudo tc qdisc add dev ens160 root tbf rate 60mbit latency 50ms burst 1600 &',
+         '4G': 'sudo tc qdisc add dev ens160 root tbf rate 20mbit latency 50ms burst 1600 &',
+         '3G': 'sudo tc qdisc add dev ens160 root tbf rate 5mbit latency 50ms burst 1600 &'}
 
 
 def get_local_dataloader(CLIENT_IDEX, cpu_count):
@@ -68,55 +61,31 @@ def get_model(location, model_name, layer, device, cfg):
     return net
 
 
-def send_msg(sock, msg):
-    msg_pickle = pickle.dumps(msg)
-    sock.sendall(struct.pack(">I", len(msg_pickle)))
-    sock.sendall(msg_pickle)
-    logger.debug(msg[0] + 'sent to' + str(sock.getpeername()[0]) + ':' + str(sock.getpeername()[1]))
-
-
-def recv_msg(sock, expect_msg_type=None):
-    msg_len = struct.unpack(">I", sock.recv(4))[0]
-    msg = sock.recv(msg_len, socket.MSG_WAITALL)
-    msg = pickle.loads(msg)
-    logger.debug(msg[0] + 'received from' + str(sock.getpeername()[0]) + ':' + str(sock.getpeername()[1]))
-
-    if (expect_msg_type is not None) and (msg[0] != expect_msg_type):
-        raise Exception("Expected " + expect_msg_type + " but received " + msg[0])
-    return msg
-
-
-def split_weights_client(weights, cweights):
-    for key in cweights:
-        assert cweights[key].size() == weights[key].size()
-        cweights[key] = weights[key]
-    return cweights
-
-
-def split_weights_server(weights, cweights, sweights):
-    ckeys = list(cweights)
-    skeys = list(sweights)
-    keys = list(weights)
-
-    for i in range(len(skeys)):
-        assert sweights[skeys[i]].size() == weights[keys[i + len(ckeys)]].size()
-        sweights[skeys[i]] = weights[keys[i + len(ckeys)]]
-
-    return sweights
-
-
-def concat_weights(weights, cweights, sweights):
+def concat_weights_client(weights, sweights):
     concat_dict = collections.OrderedDict()
 
-    ckeys = list(cweights)
-    skeys = list(sweights)
-    keys = list(weights)
+    for weight in sweights:
+        concat_dict[weight] = []
 
-    for i in range(len(ckeys)):
-        concat_dict[keys[i]] = cweights[ckeys[i]]
+    for weight in weights:
+        concat_dict[weight[0]].append(torch.from_numpy(weight[1]))
 
-    for i in range(len(skeys)):
-        concat_dict[keys[i + len(ckeys)]] = sweights[skeys[i]]
+    for key in concat_dict:
+        if not concat_dict[key]:
+            concat_dict[key] = sweights[key]
+            continue
+            # concat_dict[key] = torch.from_numpy(np.zeros(sweights[key].numel()))
+        if concat_dict[key][0].numel() == 1:
+            concat_dict[key] = concat_dict[key][0]
+            continue
+        if torch.cat(concat_dict[key]).size()[0] < sweights[key].numel():
+            # length = len(concat_dict[key])
+            # concat_dict[key].append(sweights[key][length:])
+            concat_dict[key].append(torch.from_numpy(np.zeros((sweights[key].numel()) - torch.cat(concat_dict[key]).size()[0])))
+        concat_dict[key] = torch.cat(concat_dict[key])
+        if concat_dict[key].size()[0] > sweights[key].numel():
+            concat_dict[key] = concat_dict[key][:sweights[key].numel()]
+        concat_dict[key] = torch.reshape(concat_dict[key], sweights[key].size())
 
     return concat_dict
 
@@ -151,18 +120,3 @@ def fed_avg(zero_model, w_local_list, totoal_data_size):
                 zero_model[k] += (w[0][k] * beta)
 
     return zero_model
-
-
-def norm_list(alist):
-    return [l / sum(alist) for l in alist]
-
-
-def str2bool(v):
-    if isinstance(v, bool):
-        return v
-    if v.lower() in ('yes', 'true', 't', 'y', '1'):
-        return True
-    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
-        return False
-    else:
-        raise argparse.ArgumentTypeError('Boolean value expected.')

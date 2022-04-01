@@ -1,7 +1,8 @@
-tqdm
+tqdm~=4.62.3
 torch==1.10
 torchvision==0.11.1
 torchaudio==0.10.0
 paho-mqtt==1.5.0
-pika
-pyzmq
+pika~=1.2.0
+pyzmq~=22.3.0
+stressypy~=0.0.12

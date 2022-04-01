@@ -33,18 +33,23 @@ if Config.model_name == 'VGG5':
     Config.split_layer = [6] * Config.K
     Config.model_len = 7
 
-if stress is not None:
-    os.system(Utils.tools[stress])
-
-if limiter is not None:
-    os.system('sudo tc qdisc del dev ens160 root')
-    os.system(Utils.tools[limiter])
-
 ip_address = Config.HOST2IP[socket.gethostname()]
 index = Config.CLIENTS_CONFIG[ip_address]
 datalen = Config.N / Config.K
 split_layer = Config.split_layer[index]
 LR = Config.LR
+
+if stress is not None:
+    if stress == 'cpu' or int(ip_address[:-1]) % 2 == 0:
+        os.system(Utils.tools[stress])
+    else:
+        #host =
+        # TODO: Fix netstress for my project - rethink my options
+        os.system('netstress -m host %s &', )
+
+if limiter is not None:
+    os.system('sudo tc qdisc del dev ens160 root')
+    os.system(Utils.tools[limiter])
 
 logger.info('Preparing Client')
 client = Client(index, ip_address, Config.SERVER_ADDR, Config.SERVER_PORT, datalen)
