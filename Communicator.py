@@ -78,7 +78,7 @@ class Communicator(object):
             # Create exchange
             self.pub_channel.exchange_declare(exchange=self.pub_topic, exchange_type='fanout')
             self.count = 0
-            # Create Q
+            # Create receive message thread
             self.thread = threading.Thread(target=self.recv_msg_amqp)
             self.thread.start()
         # ZMTP specific setup
