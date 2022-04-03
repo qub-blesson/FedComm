@@ -22,10 +22,12 @@ parser.add_argument('--model', help='Model type', default='VGG8')
 parser.add_argument('--stress', help='Tool used to limit network or apply stress: cpu, net', default=None)
 parser.add_argument('--limiter', help='Tool used to limit network or apply stress: 3G, 4G, Wi-Fi', default=None)
 parser.add_argument('--rounds', help='Number of training rounds', type=int, default=5)
+parser.add_argument('--monitor', help='Monitors packet loss rate', default=None)
 args = parser.parse_args()
 # set parameters based on input
 stress = args.stress
 limiter = args.limiter
+monitor = args.monitor
 
 Config.R = args.rounds
 
@@ -53,6 +55,10 @@ if stress is not None:
         #host =
         # TODO: Fix netstress for my project - rethink my options
         os.system('netstress -m host %s &', )
+
+if monitor is not None:
+    os.system('sudo test')
+    os.system('sudo tshark -q -z io,stat,30,"COUNT(tcp.analysis.retransmission) tcp.analysis.retransmission" &')
 
 # apply network limit
 if limiter is not None:
@@ -101,3 +107,5 @@ for r in range(Config.R):
     logger.info('==> Reinitialization Finish')
 # finish client
 client.finish()
+if monitor is not None:
+    os.system('sudo pkill tshark')
