@@ -11,6 +11,7 @@ from queue import Queue
 import paho.mqtt.client as mqtt
 import zmq
 import torch
+import numpy as np
 
 import Config
 
@@ -294,7 +295,6 @@ class Communicator(object):
             self.handle_weights(sock, address, msg)
             tcp_sock.sendall(struct.pack(">I", len(b'END')))
             tcp_sock.sendall(b'END')
-            self.packets_sent += 2
 
     def recv_end(self, socks):
         global end_msg

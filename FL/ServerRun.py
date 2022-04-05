@@ -91,7 +91,7 @@ for r in range(Config.R):
     logger.info('Round Finish')
     if communicator != 'UDP':
         logger.info('==> Round Training Computation Time: {:}'.format(comp_time))
-    logger.info('==> Round Training Communication Time: {:}'.format(training_time - comp_time))
+        logger.info('==> Round Training Communication Time: {:}'.format(training_time - comp_time))
 
     logger.info('==> Reinitialization for Round : {:}'.format(r + 1))
 
@@ -107,7 +107,7 @@ if communicator == 'UDP':
     for i in state:
         comp_time = np.add(comp_time, state[i])
     comp_time /= Config.K
-    for i in range(Config.K):
+    for i in range(Config.R):
         res['communication_time'].append(res['training_time'][i] - comp_time[i])
     with open(results, 'wb') as f:
         pickle.dump(res, f)
