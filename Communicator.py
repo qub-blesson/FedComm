@@ -326,6 +326,7 @@ class Communicator(object):
                     self.pickle_send_udp(message, address, sock)
             else:
                 message = [key, send_buffers[i].detach().numpy()]
+                self.packets_sent += 1
                 self.pickle_send_udp(message, address, sock)
 
     def pickle_send_udp(self, message, address, sock):
