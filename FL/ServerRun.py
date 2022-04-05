@@ -6,6 +6,7 @@ from Server import Server
 import Config
 import logging
 import sys
+import numpy as np
 
 # set logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -46,7 +47,7 @@ first = True
 
 # make server based on application layer protocol selected
 server = None
-if communicator == 'TCP':
+if communicator == 'TCP' or communicator == 'UDP':
     server = Server(0, Config.SERVER_ADDR, Config.SERVER_PORT)
 else:
     server = Server(Config.K, Config.SERVER_ADDR, Config.SERVER_PORT)
@@ -73,11 +74,12 @@ for r in range(Config.R):
     # Recording each round training time and test accuracy
     training_time = e_time - s_time
     res['training_time'].append(training_time)
-    comp_time = 0
-    for key in state:
-        comp_time += state[key]
-    comp_time /= Config.K
-    res['communication_time'].append(training_time - comp_time)
+    if communicator != 'UDP':
+        comp_time = 0
+        for key in state:
+            comp_time += state[key]
+        comp_time /= Config.K
+        res['communication_time'].append(training_time - comp_time)
     test_acc = server.test()
     res['test_acc_record'].append(test_acc)
 
@@ -87,7 +89,8 @@ for r in range(Config.R):
 
     # log for user
     logger.info('Round Finish')
-    logger.info('==> Round Training Computation Time: {:}'.format(comp_time))
+    if communicator != 'UDP':
+        logger.info('==> Round Training Computation Time: {:}'.format(comp_time))
     logger.info('==> Round Training Communication Time: {:}'.format(training_time - comp_time))
 
     logger.info('==> Reinitialization for Round : {:}'.format(r + 1))
@@ -96,4 +99,15 @@ for r in range(Config.R):
     server.reinitialize(first)
     logger.info('==> Reinitialization Finish')
 # server finish
-comm_time = server.finish(Config.CLIENTS_LIST)
+state = server.finish()
+
+if communicator == 'UDP':
+    comp_time = np.array([0] * Config.R)
+
+    for i in state:
+        comp_time = np.add(comp_time, state[i])
+    comp_time /= Config.K
+    for i in range(Config.K):
+        res['communication_time'].append(res['training_time'][i] - comp_time[i])
+    with open(results, 'wb') as f:
+        pickle.dump(res, f)

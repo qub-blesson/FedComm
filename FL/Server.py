@@ -62,6 +62,24 @@ class Server(Communicator):
                 connections += int(self.q.get())
 
             logger.info("Clients have connected")
+        elif Config.COMM == 'UDP':
+            self.sock.bind((self.ip, self.port + 1))
+            self.tcp_sock.bind((self.ip, self.port))
+            self.client_socks = {}
+            self.client_ip = {}
+
+            while len(self.client_socks) < Config.K:
+                self.tcp_sock.listen(5)
+                (client_sock, (ip, port)) = self.tcp_sock.accept()
+                self.client_socks[str(ip)] = client_sock
+
+            self.thread = threading.Thread(target=self.recv_end, args=[self.client_socks])
+            self.thread.start()
+
+            while len(self.client_ip) < Config.K:
+                msg = self.init_recv_msg_udp(self.sock)
+                logger.info('Got connection from ' + str(msg[0]))
+                self.client_ip[str(msg[0])] = (msg[0], msg[1])
 
         # get initial model for server
         self.uninet = Utils.get_model('Unit', Config.model_name, Config.model_len - 1, self.device, Config.model_cfg)
@@ -93,6 +111,9 @@ class Server(Communicator):
         if Config.COMM == 'TCP':
             for i in self.client_socks:
                 self.snd_msg_tcp(self.client_socks[i], msg)
+        elif Config.COMM == 'UDP':
+            for i in self.client_ip:
+                self.send_msg_udp(self.sock, self.client_socks[i], self.client_ip[i], msg)
         else:
             self.send_msg(msg)
 
@@ -109,6 +130,8 @@ class Server(Communicator):
             for s in self.client_socks:
                 msg = self.recv_msg(self.client_socks[s], 'MSG_TRAINING_TIME_PER_ITERATION')
                 ttpi[msg[1]] = msg[2]
+        elif Config.COMM == 'UDP':
+            return
         else:
             connections = 0
             while connections != Config.K:
@@ -127,11 +150,18 @@ class Server(Communicator):
         :param client_ips: ip of all clients in FL process
         """
         w_local_list = []
+        if Config.COMM == 'UDP':
+            msg = self.recv_msg_udp_agg(self.sock, 'MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER')
+            for weight in msg:
+                weights = Utils.concat_weights_client(msg[weight], self.uninet.state_dict())
+                w_local = (weights, Config.N / Config.K)
+                w_local_list.append(w_local)
+
         for i in range(len(client_ips)):
             msg = None
             if Config.COMM == 'TCP':
                 msg = self.recv_msg(self.client_socks[client_ips[i]], 'MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER')
-            else:
+            elif Config.COMM != 'UDP':
                 while msg is None:
                     msg = self.q.get()
             w_local = (msg[1], Config.N / Config.K)
@@ -180,21 +210,15 @@ class Server(Communicator):
         """
         self.initialize(first)
 
-    def finish(self, client_ips):
+    def finish(self):
         """
         Finish FL process from server
 
-        :param client_ips: ip of all clients to send finish statement/message
-        :return:
+        :return: training time per iteration for UDP
         """
-        msg = []
-        if Config.COMM == 'TCP':
-            for i in range(len(client_ips)):
-                msg.append(self.recv_msg(self.client_socks[client_ips[i]], 'MSG_COMMUNICATION_TIME')[1])
-        else:
-            connections = 0
-            while connections != Config.K:
-                msg.append(self.q.get()[1])
-                connections += 1
-            self.send_msg(['DONE'])
-        return max(msg)
+        if Config.COMM == 'UDP':
+            while len(self.udp_ttpi) < 4:
+                pass
+            logger.info(self.packets_received)
+            return self.udp_ttpi
+        self.send_msg(['DONE'])

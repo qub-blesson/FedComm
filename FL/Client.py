@@ -6,6 +6,9 @@ import torch.nn as nn
 import torch.optim as optim
 import tqdm
 
+import Communicator
+import Config
+
 sys.path.append('../')
 import Utils
 from Communicator import *
@@ -46,6 +49,12 @@ class Client(Communicator):
             self.sock.connect((server_addr, server_port))
         elif Config.COMM == 'AMQP':
             self.send_msg("1")
+        elif Config.COMM == 'UDP':
+            self.tcp_sock.connect((server_addr, server_port))
+            self.send_msg_udp(self.sock, self.tcp_sock, (server_addr, server_port + 1), b'')
+            self.server_addr = server_addr
+            self.server_port = server_port
+            self.computation_time = ['MSG_TRAINING_TIME_PER_ITERATION', self.ip]
 
     def initialize(self, split_layer, first, LR):
         """
@@ -70,6 +79,9 @@ class Client(Communicator):
         logger.debug('Receiving Global Weights..')
         if Config.COMM == 'TCP':
             weights = self.recv_msg(self.sock)[1]
+        elif Config.COMM == 'UDP':
+            # fill in missing values
+            weights = Utils.concat_weights_client(self.recv_msg_udp(self.sock), self.net.state_dict())
         else:
             weights = self.q.get()[1]
 
@@ -101,18 +113,20 @@ class Client(Communicator):
         msg = ['MSG_TRAINING_TIME_PER_ITERATION', self.ip, e_time_total - s_time_total]
         if Config.COMM == 'TCP':
             self.snd_msg_tcp(self.sock, msg)
+        elif Config.COMM == 'UDP':
+            self.computation_time.append(time.time() - s_time_total)
         else:
             self.send_msg(msg)
 
     def upload(self):
         # send newly trained weights to server
         msg = ['MSG_LOCAL_WEIGHTS_CLIENT_TO_SERVER', self.net.cpu().state_dict()]
-        start = time.time()
         if Config.COMM == 'TCP':
             self.snd_msg_tcp(self.sock, msg)
+        elif Config.COMM == 'UDP':
+            self.send_msg_udp(self.sock, self.tcp_sock, (self.server_addr, self.server_port + 1), msg)
         else:
             self.send_msg(msg)
-        Config.comm_time += (time.time() - start)
 
     def reinitialize(self, split_layers, first, LR):
         """
@@ -125,11 +139,12 @@ class Client(Communicator):
         self.initialize(split_layers, first, LR)
 
     def finish(self):
+        logger.info(self.packets_sent)
         # Send finishing message to ensure safe deletion
-        msg = ['MSG_COMMUNICATION_TIME', Config.comm_time]
-        if Config.COMM == 'TCP':
-            self.snd_msg_tcp(self.sock, msg)
+        if Config.COMM == 'UDP':
+            self.send_msg_tcp_client(self.tcp_sock, self.computation_time)
+        elif Config.COMM == 'TCP':
+            pass
         else:
-            self.send_msg(msg)
             if self.q.get() == 'DONE':
                 pass

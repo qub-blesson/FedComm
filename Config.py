@@ -21,9 +21,6 @@ dataset_name = 'CIFAR10'
 dataset_path = "../datasets/" + dataset_name
 N = 50000  # data length
 
-# train communication time
-comm_time = 0.0
-
 # model configuration
 model_cfg = {
     # (Type, in_channels, out_channels, kernel_size, out_size(c_out*h*w), flops(c_out*h*w*k*k*c_in))

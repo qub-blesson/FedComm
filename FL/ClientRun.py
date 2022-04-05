@@ -96,7 +96,7 @@ for r in range(Config.R):
     logger.info('==> Reinitialization for Round : {:}'.format(r + 1))
     s_time_rebuild = time.time()
 
-    # decrease learning rate from round 50 TODO: Possibly remove
+    # decrease learning rate from round 50
     if r > 49:
         LR = Config.LR * 0.1
 
@@ -109,3 +109,6 @@ for r in range(Config.R):
 client.finish()
 if monitor is not None:
     os.system('sudo pkill tshark')
+if Config.COMM == 'UDP':
+    while True:
+        pass
