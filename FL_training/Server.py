@@ -244,7 +244,7 @@ class Server(Communicator):
             self.send_msg_udp(self.sock, self.client_socks[i], msg)
 
     def finish(self):
-        while len(self.ttpi) < 4:
+        while len(self.udp_ttpi) < 4:
             pass
         logger.info(self.packets_received)
-        return self.ttpi
+        return self.udp_ttpi
