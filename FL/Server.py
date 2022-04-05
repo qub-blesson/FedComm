@@ -164,8 +164,9 @@ class Server(Communicator):
             elif Config.COMM != 'UDP':
                 while msg is None:
                     msg = self.q.get()
-            w_local = (msg[1], Config.N / Config.K)
-            w_local_list.append(w_local)
+            if Config.COMM != 'UDP':
+                w_local = (msg[1], Config.N / Config.K)
+                w_local_list.append(w_local)
         zero_model = Utils.zero_init(self.uninet).state_dict()
         # average the model weights
         aggregated_model = Utils.fed_avg(zero_model, w_local_list, Config.N)

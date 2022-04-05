@@ -136,9 +136,9 @@ class Client(Communicator):
         self.initialize(split_layers, first, LR)
 
     def finish(self):
-        logger.info(self.packets_sent)
         # Send finishing message to ensure safe deletion
         if Config.COMM == 'UDP':
+            logger.info(self.packets_sent)
             self.send_msg_tcp_client(self.tcp_sock, self.computation_time)
         elif Config.COMM == 'TCP':
             pass
