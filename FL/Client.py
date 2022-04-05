@@ -6,9 +6,6 @@ import torch.nn as nn
 import torch.optim as optim
 import tqdm
 
-import Communicator
-import Config
-
 sys.path.append('../')
 import Utils
 from Communicator import *
