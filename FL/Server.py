@@ -27,6 +27,7 @@ import Config
 np.random.seed(0)
 torch.manual_seed(0)
 
+
 # server class
 class Server(Communicator):
     def __init__(self, index, ip_address, server_port):
@@ -39,57 +40,21 @@ class Server(Communicator):
         """
         super(Server, self).__init__(index, ip_address, ip_address, server_port, pub_topic="fedserver",
                                      sub_topic='fedbench', client_num=Config.K)
+        # init variables
+        self.testloader = None
+        self.testset = None
+        self.transform_test = None
+        self.uninet = None
+        self.client_socks = None
+        self.client_ip = None
         self.criterion = None
         self.optimizers = None
         self.nets = None
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.port = server_port
 
-        # wait for incoming connections via various application layer protocols
-        logger.info("Waiting For Incoming Connections.")
-        if Config.COMM == 'TCP':
-            self.sock.bind((self.ip, self.port))
-            self.client_socks = {}
-
-            while len(self.client_socks) < Config.K:
-                self.sock.listen(5)
-                (client_sock, (ip, port)) = self.sock.accept()
-                logger.info('Got connection from ' + str(ip))
-                self.client_socks[str(ip)] = client_sock
-        elif Config.COMM == 'MQTT' or Config.COMM == 'AMQP':
-            connections = 0
-            while connections < Config.K:
-                connections += int(self.q.get())
-
-            logger.info("Clients have connected")
-        elif Config.COMM == 'UDP':
-            self.sock.bind((self.ip, self.port + 1))
-            self.tcp_sock.bind((self.ip, self.port))
-            self.client_socks = {}
-            self.client_ip = {}
-
-            while len(self.client_socks) < Config.K:
-                self.tcp_sock.listen(5)
-                (client_sock, (ip, port)) = self.tcp_sock.accept()
-                self.client_socks[str(ip)] = client_sock
-
-            self.thread = threading.Thread(target=self.recv_end, args=[self.client_socks])
-            self.thread.start()
-
-            while len(self.client_ip) < Config.K:
-                msg = self.init_recv_msg_udp(self.sock)
-                logger.info('Got connection from ' + str(msg[0]))
-                self.client_ip[str(msg[0])] = (msg[0], msg[1])
-
-        # get initial model for server
-        self.uninet = Utils.get_model('Unit', Config.model_name, Config.model_len - 1, self.device, Config.model_cfg)
-
-        self.transform_test = transforms.Compose(
-            [transforms.ToTensor(), transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-             ])
-        self.testset = torchvision.datasets.CIFAR10(root=Config.dataset_path, train=False, download=False,
-                                                    transform=self.transform_test)
-        self.testloader = torch.utils.data.DataLoader(self.testset, batch_size=100, shuffle=False, num_workers=4)
+        self.connect_devices()
+        self.get_model()
 
     def initialize(self, first):
         """
@@ -97,25 +62,8 @@ class Server(Communicator):
 
         :param first: Indicates first initial round
         """
-        if first:
-            self.nets = {}
-            self.optimizers = {}
-            for i in range(len(Config.split_layer)):
-                client_ip = Config.CLIENTS_LIST[i]
-                self.nets[client_ip] = Utils.get_model('Server', Config.model_name, Config.split_layer[i], self.device,
-                                                       Config.model_cfg)
-            self.criterion = nn.CrossEntropyLoss()
-
-        # send initial weights to all clients
-        msg = ['MSG_INITIAL_GLOBAL_WEIGHTS_SERVER_TO_CLIENT', self.uninet.state_dict()]
-        if Config.COMM == 'TCP':
-            for i in self.client_socks:
-                self.snd_msg_tcp(self.client_socks[i], msg)
-        elif Config.COMM == 'UDP':
-            for i in self.client_ip:
-                self.send_msg_udp(self.sock, self.client_socks[i], self.client_ip[i], msg)
-        else:
-            self.send_msg(msg)
+        self.get_client_model(first)
+        self.send_initial_model_weights()
 
     def train(self):
         """
@@ -123,8 +71,8 @@ class Server(Communicator):
 
         :return: training time per iteration
         """
-        # Training start
 
+        # Retrieve TTPI per client
         ttpi = {}  # Training time per iteration
         if Config.COMM == 'TCP':
             for s in self.client_socks:
@@ -223,3 +171,74 @@ class Server(Communicator):
             logger.info(self.packets_received)
             return self.udp_ttpi
         self.send_msg(['DONE'])
+
+    def connect_devices(self):
+        # wait for incoming connections via various application layer protocols
+        logger.info("Waiting For Incoming Connections.")
+        if Config.COMM == 'TCP':
+            self.sock.bind((self.ip, self.port))
+            self.client_socks = {}
+
+            while len(self.client_socks) < Config.K:
+                self.sock.listen(5)
+                (client_sock, (ip, port)) = self.sock.accept()
+                logger.info('Got connection from ' + str(ip))
+                self.client_socks[str(ip)] = client_sock
+        elif Config.COMM == 'MQTT' or Config.COMM == 'AMQP':
+            connections = 0
+            while connections < Config.K:
+                connections += int(self.q.get())
+
+            logger.info("Clients have connected")
+        elif Config.COMM == 'UDP':
+            self.sock.bind((self.ip, self.port + 1))
+            self.tcp_sock.bind((self.ip, self.port))
+            self.client_socks = {}
+            self.client_ip = {}
+
+            while len(self.client_socks) < Config.K:
+                self.tcp_sock.listen(5)
+                (client_sock, (ip, port)) = self.tcp_sock.accept()
+                self.client_socks[str(ip)] = client_sock
+
+            self.thread = threading.Thread(target=self.recv_end, args=[self.client_socks])
+            self.thread.start()
+
+            while len(self.client_ip) < Config.K:
+                msg = self.init_recv_msg_udp(self.sock)
+                logger.info('Got connection from ' + str(msg[0]))
+                self.client_ip[str(msg[0])] = (msg[0], msg[1])
+
+    def get_model(self):
+        # get initial model for server
+        self.uninet = Utils.get_model('Unit', Config.model_name, Config.model_len - 1, self.device, Config.model_cfg)
+
+        self.transform_test = transforms.Compose(
+            [transforms.ToTensor(), transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+             ])
+        self.testset = torchvision.datasets.CIFAR10(root=Config.dataset_path, train=False, download=False,
+                                                    transform=self.transform_test)
+        self.testloader = torch.utils.data.DataLoader(self.testset, batch_size=100, shuffle=False, num_workers=4)
+
+    def get_client_model(self, first):
+        if first:
+            self.nets = {}
+            # TODO: perhaps remove optimizers
+            self.optimizers = {}
+            for i in range(len(Config.split_layer)):
+                client_ip = Config.CLIENTS_LIST[i]
+                self.nets[client_ip] = Utils.get_model('Server', Config.model_name, Config.split_layer[i], self.device,
+                                                       Config.model_cfg)
+            self.criterion = nn.CrossEntropyLoss()
+
+    def send_initial_model_weights(self):
+        # send initial weights to all clients
+        msg = ['MSG_INITIAL_GLOBAL_WEIGHTS_SERVER_TO_CLIENT', self.uninet.state_dict()]
+        if Config.COMM == 'TCP':
+            for i in self.client_socks:
+                self.snd_msg_tcp(self.client_socks[i], msg)
+        elif Config.COMM == 'UDP':
+            for i in self.client_ip:
+                self.send_msg_udp(self.sock, self.client_socks[i], self.client_ip[i], msg)
+        else:
+            self.send_msg(msg)
