@@ -365,6 +365,7 @@ class Communicator(object):
                 pass
             if msg is not None:
                 agg_dict[address[0]].append(pickle.loads(msg))
+                msg = None
             if end_msg:
                 end_msg = False
                 break
