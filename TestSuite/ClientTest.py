@@ -157,3 +157,6 @@ class ClientTest(unittest.TestCase):
         self.client.net = Utils.get_model('Client', Config.model_name, 9, 'cpu', Config.model_cfg)
         self.client.train_model(trainloader)
     """
+
+    def test_send_training_time_to_server(self):
+        """Needs use of connections"""
