@@ -125,8 +125,9 @@ class Client(Communicator):
             logger.debug(self.net)
             self.criterion = nn.CrossEntropyLoss()
 
-        self.optimizer = optim.SGD(self.net.parameters(), lr=LR,
-                                   momentum=0.9)
+        if self.net is not None:
+            self.optimizer = optim.SGD(self.net.parameters(), lr=LR,
+                                       momentum=0.9)
 
     def load_new_model(self, weights):
         # load model from new weights

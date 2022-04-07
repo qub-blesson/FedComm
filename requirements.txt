@@ -5,3 +5,4 @@ torchaudio==0.10.0
 paho-mqtt==1.5.0
 pika~=1.2.0
 pyzmq~=22.3.0
+numpy~=1.22.3
