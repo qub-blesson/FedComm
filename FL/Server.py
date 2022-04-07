@@ -30,7 +30,7 @@ torch.manual_seed(0)
 
 # server class
 class Server(Communicator):
-    def __init__(self, index, ip_address, server_port):
+    def __init__(self, index, ip_address, server_port, test=False):
         """
         Initialise server
 
@@ -53,8 +53,9 @@ class Server(Communicator):
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.port = server_port
 
-        self.connect_devices()
-        self.get_model()
+        if not test:
+            self.connect_devices()
+            self.get_model()
 
     def initialize(self, first):
         """
@@ -62,7 +63,7 @@ class Server(Communicator):
 
         :param first: Indicates first initial round
         """
-        self.get_client_model(first)
+        self.get_empty_client_model(first)
         self.send_initial_model_weights()
 
     def train(self):
@@ -220,7 +221,7 @@ class Server(Communicator):
                                                     transform=self.transform_test)
         self.testloader = torch.utils.data.DataLoader(self.testset, batch_size=100, shuffle=False, num_workers=4)
 
-    def get_client_model(self, first):
+    def get_empty_client_model(self, first):
         if first:
             self.nets = {}
             # TODO: perhaps remove optimizers

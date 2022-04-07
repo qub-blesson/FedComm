@@ -16,8 +16,8 @@ from FL.Client import Client
 
 sys.path.append('../')
 
+trainloader, classes = Utils.get_local_dataloader(0, 4)
 
-# trainloader, classes = Utils.get_local_dataloader(0, 4)
 
 class BasicServer(gevent.server.StreamServer):
     def handle(self, socket, address):
@@ -152,8 +152,7 @@ class ClientTest(unittest.TestCase):
         self.client.load_new_model(self.net.state_dict())
         self.assertIsNotNone(self.client.net)
 
-    # TODO: Need to get dataset in order to test this
-    """
+    # TODO: Write actual test
     def test_train_model__VGG5(self):
         Config.COMM = ''
         Config.model_name = 'VGG8'
@@ -162,7 +161,6 @@ class ClientTest(unittest.TestCase):
         self.client = Client(0, '', Config.SERVER_ADDR, Config.SERVER_PORT, Config.N)
         self.client.net = Utils.get_model('Client', Config.model_name, 9, 'cpu', Config.model_cfg)
         self.client.train_model(trainloader)
-    """
 
     """
     def test_send_training_time_to_server(self):
