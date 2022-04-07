@@ -151,8 +151,7 @@ class Communicator(object):
             self.pub_channel.basic_publish(exchange=self.pub_topic, routing_key='', body=msg_pickle)
         elif Config.COMM == '0MQ':
             self.pub_socket.send(msg_pickle)
-        else:
-
+        #else:
 
     """ MQTT functionality """
     def on_connect(self, client, userdata, flags, rc):
