@@ -90,7 +90,6 @@ class ClientTest(unittest.TestCase):
         self.client.net = Utils.get_model('Client', Config.model_name, 6, 'cpu', Config.model_cfg)
         self.client.build_optimize_model(9, False, 0.02)
         self.assertEqual(type(self.client.optimizer), torch.optim.SGD)
-        print(self.client.optimizer.param_groups[0]['lr'])
 
     def test_build_optimize_model__model_optimised_VGG5(self):
         Config.COMM = ''
@@ -101,7 +100,6 @@ class ClientTest(unittest.TestCase):
         self.client.net = Utils.get_model('Client', Config.model_name, 6, 'cpu', Config.model_cfg)
         self.client.build_optimize_model(6, False, Config.LR)
         self.assertEqual(type(self.client.optimizer), torch.optim.SGD)
-        print(self.client.optimizer.param_groups[0]['lr'])
 
     def test_build_optimize_model__LR_VGG8(self):
         Config.COMM = ''
