@@ -16,8 +16,6 @@ from FL.Client import Client
 
 sys.path.append('../')
 
-trainloader, classes = Utils.get_local_dataloader(0, 4)
-
 
 class BasicServer(gevent.server.StreamServer):
     def handle(self, socket, address):
@@ -152,15 +150,55 @@ class ClientTest(unittest.TestCase):
         self.client.load_new_model(self.net.state_dict())
         self.assertIsNotNone(self.client.net)
 
-    # TODO: Write actual test
     def test_train_model__VGG5(self):
         Config.COMM = ''
-        Config.model_name = 'VGG8'
-        Config.split_layer = [9] * Config.K
-        Config.model_len = 10
         self.client = Client(0, '', Config.SERVER_ADDR, Config.SERVER_PORT, Config.N)
-        self.client.net = Utils.get_model('Client', Config.model_name, 9, 'cpu', Config.model_cfg)
+        trainloader, classes = Utils.get_local_dataloader(0, 1)
+        Config.model_name = 'VGG5'
+        Config.model_len = 7
+        self.client.net = Utils.get_model('Client', Config.model_name, 6, 'cpu', Config.model_cfg)
+        self.client.build_optimize_model(6, True, Config.LR)
+        s, e = self.client.train_model(trainloader)
+        expected = 10 # seconds
+        self.assertGreaterEqual(e-s, expected)
+
+    def test_train_model__Accuracy_VGG5(self):
+        Config.COMM = ''
+        self.client = Client(0, '', Config.SERVER_ADDR, Config.SERVER_PORT, Config.N)
+        trainloader, classes = Utils.get_local_dataloader(0, 1)
+        Config.model_name = 'VGG5'
+        Config.model_len = 7
+        self.client.net = Utils.get_model('Client', Config.model_name, 6, 'cpu', Config.model_cfg)
+        self.client.build_optimize_model(6, True, Config.LR)
+        acc_before_train = self.client.test()
         self.client.train_model(trainloader)
+        acc_after_train = self.client.test()
+        self.assertGreater(acc_after_train, acc_before_train)
+
+    def test_train_model__VGG8(self):
+        Config.COMM = ''
+        self.client = Client(0, '', Config.SERVER_ADDR, Config.SERVER_PORT, Config.N)
+        trainloader, classes = Utils.get_local_dataloader(0, 1)
+        Config.model_name = 'VGG8'
+        Config.model_len = 10
+        self.client.net = Utils.get_model('Client', Config.model_name, 9, 'cpu', Config.model_cfg)
+        self.client.build_optimize_model(9, True, Config.LR)
+        s, e = self.client.train_model(trainloader)
+        expected = 20 # seconds
+        self.assertGreaterEqual(e-s, expected)
+
+    def test_train_model__Accuracy_VGG8(self):
+        Config.COMM = ''
+        self.client = Client(0, '', Config.SERVER_ADDR, Config.SERVER_PORT, Config.N)
+        trainloader, classes = Utils.get_local_dataloader(0, 1)
+        Config.model_name = 'VGG8'
+        Config.model_len = 10
+        self.client.net = Utils.get_model('Client', Config.model_name, 9, 'cpu', Config.model_cfg)
+        self.client.build_optimize_model(9, True, Config.LR)
+        acc_before_train = self.client.test()
+        self.client.train_model(trainloader)
+        acc_after_train = self.client.test()
+        self.assertGreater(acc_after_train, acc_before_train)
 
     """
     def test_send_training_time_to_server(self):
