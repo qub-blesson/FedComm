@@ -1,6 +1,9 @@
 import collections
+import socketserver
 import unittest
 import sys
+
+import gevent.server
 import numpy as np
 import torch
 import torchvision
@@ -13,7 +16,12 @@ from FL.Client import Client
 
 sys.path.append('../')
 
-#trainloader, classes = Utils.get_local_dataloader(0, 4)
+
+# trainloader, classes = Utils.get_local_dataloader(0, 4)
+
+class BasicServer(gevent.server.StreamServer):
+    def handle(self, socket, address):
+        print('test')
 
 
 class ClientTest(unittest.TestCase):
@@ -156,5 +164,14 @@ class ClientTest(unittest.TestCase):
         self.client.train_model(trainloader)
     """
 
+    """
     def test_send_training_time_to_server(self):
-        """Needs use of connections"""
+        Config.COMM = ''
+        self.client = Client(0, '', Config.SERVER_ADDR, Config.SERVER_PORT, Config.N)
+        server = BasicServer(('127.0.0.1', 0))
+        server.start()
+        self.client.sock = gevent.socket.create_connection(('127.0.0.1', server.server_port))
+        response = self.client.sock.makefile().read()
+        print(response)
+        server.stop()
+    """
