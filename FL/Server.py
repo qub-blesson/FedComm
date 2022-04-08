@@ -48,7 +48,6 @@ class Server(Communicator):
         self.client_socks = None
         self.client_ip = None
         self.criterion = None
-        self.optimizers = None
         self.nets = None
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.port = server_port
@@ -211,7 +210,7 @@ class Server(Communicator):
                 self.client_ip[str(msg[0])] = (msg[0], msg[1])
 
     def get_model(self):
-        # get initial model for server
+        # get initial model for server and associated functionality
         self.uninet = Utils.get_model('Unit', Config.model_name, Config.model_len - 1, self.device, Config.model_cfg)
 
         self.transform_test = transforms.Compose(
@@ -224,8 +223,6 @@ class Server(Communicator):
     def get_empty_client_model(self, first):
         if first:
             self.nets = {}
-            # TODO: perhaps remove optimizers
-            self.optimizers = {}
             for i in range(len(Config.split_layer)):
                 client_ip = Config.CLIENTS_LIST[i]
                 self.nets[client_ip] = Utils.get_model('Server', Config.model_name, Config.split_layer[i], self.device,

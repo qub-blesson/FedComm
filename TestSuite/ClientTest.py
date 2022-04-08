@@ -162,7 +162,7 @@ class ClientTest(unittest.TestCase):
         expected = 5  # seconds
         self.assertGreaterEqual(e - s, expected)
 
-    def test_train_model__Accuracy_VGG5(self):
+    def test_train_model__accuracy_VGG5(self):
         Config.COMM = ''
         self.client = Client(0, '', Config.SERVER_ADDR, Config.SERVER_PORT, Config.N)
         trainloader, classes = Utils.get_local_dataloader(0, 1)
@@ -187,7 +187,7 @@ class ClientTest(unittest.TestCase):
         expected = 10  # seconds
         self.assertGreaterEqual(e - s, expected)
 
-    def test_train_model__Accuracy_VGG8(self):
+    def test_train_model__accuracy_VGG8(self):
         Config.COMM = ''
         self.client = Client(0, '', Config.SERVER_ADDR, Config.SERVER_PORT, Config.N)
         trainloader, classes = Utils.get_local_dataloader(0, 1)
