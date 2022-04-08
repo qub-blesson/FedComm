@@ -159,8 +159,8 @@ class ClientTest(unittest.TestCase):
         self.client.net = Utils.get_model('Client', Config.model_name, 6, 'cpu', Config.model_cfg)
         self.client.build_optimize_model(6, True, Config.LR)
         s, e = self.client.train_model(trainloader)
-        expected = 10 # seconds
-        self.assertGreaterEqual(e-s, expected)
+        expected = 5  # seconds
+        self.assertGreaterEqual(e - s, expected)
 
     def test_train_model__Accuracy_VGG5(self):
         Config.COMM = ''
@@ -184,8 +184,8 @@ class ClientTest(unittest.TestCase):
         self.client.net = Utils.get_model('Client', Config.model_name, 9, 'cpu', Config.model_cfg)
         self.client.build_optimize_model(9, True, Config.LR)
         s, e = self.client.train_model(trainloader)
-        expected = 20 # seconds
-        self.assertGreaterEqual(e-s, expected)
+        expected = 10  # seconds
+        self.assertGreaterEqual(e - s, expected)
 
     def test_train_model__Accuracy_VGG8(self):
         Config.COMM = ''
