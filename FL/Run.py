@@ -34,7 +34,11 @@ def parse_args():
 
 if __name__ == '__main__':
     target, communicator, model, stress, limiter, monitor = parse_args()
-    if Config.HOST2IP[socket.gethostname()] not in Config.CLIENTS_LIST:
+    if socket.gethostname() not in Config.HOST2IP:
+        if stress is None:
+            stress = ''
+        if limiter is None:
+            limiter = ''
         ServerRun(communicator, model, stress, limiter)
     else:
         ClientRun(communicator, model, stress, limiter, monitor)
