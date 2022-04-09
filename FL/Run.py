@@ -34,7 +34,7 @@ def parse_args():
 
 if __name__ == '__main__':
     target, communicator, model, stress, limiter, monitor = parse_args()
-    if socket.gethostname() not in Config.HOST2IP:
+    if target == socket.gethostbyname(socket.gethostname()) or socket.gethostname() not in Config.HOST2IP:
         if stress is None:
             stress = ''
         if limiter is None:
