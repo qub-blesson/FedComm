@@ -1,6 +1,9 @@
 import argparse
 import socket
+import sys
 
+# add all files to path
+sys.path.append('../')
 import Config
 from FL.ClientRun import ClientRun
 from FL.ServerRun import ServerRun
@@ -31,7 +34,7 @@ def parse_args():
 
 if __name__ == '__main__':
     target, communicator, model, stress, limiter, monitor = parse_args()
-    if target == Config.HOST2IP[socket.gethostname()]:
+    if Config.HOST2IP[socket.gethostname()] not in Config.CLIENTS_LIST:
         ServerRun(communicator, model, stress, limiter)
     else:
         ClientRun(communicator, model, stress, limiter, monitor)
