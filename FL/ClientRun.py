@@ -16,154 +16,123 @@ logger = logging.getLogger(__name__)
 # add all files to path
 sys.path.append('../')
 
-# global variables
-stress = None
-limiter = None
-monitor = None
-model = None
-communicator = None
-index = None
-ip_address = None
-split_layer = None
-LR = None
-datalen = None
-trainloader = None
-client = None
-first = None
 
+class ClientRun:
+    def __init__(self, communicator, model, stress, limiter, monitor):
+        # global variables
+        self.stress = stress
+        self.limiter = limiter
+        self.monitor = monitor
+        self.model = model
+        self.communicator = communicator
 
-def parse_args():
-    global stress, limiter, monitor, model, communicator
-    # set arg parse
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--communicator', help='Communication protocol', default='TCP')
-    parser.add_argument('--model', help='Model type', default='VGG8')
-    parser.add_argument('--stress', help='Tool used to limit network or apply stress: cpu, net', default=None)
-    parser.add_argument('--limiter', help='Tool used to limit network or apply stress: 3G, 4G, Wi-Fi', default=None)
-    parser.add_argument('--rounds', help='Number of training rounds', type=int, default=5)
-    parser.add_argument('--monitor', help='Monitors packet loss rate', default=None)
-    args = parser.parse_args()
-    # set parameters based on input
-    stress = args.stress
-    limiter = args.limiter
-    monitor = args.monitor
-    Config.R = args.rounds
-    model = args.model
-    communicator = args.communicator
+        self.index = None
+        self.ip_address = None
+        self.split_layer = None
+        self.LR = None
+        self.datalen = None
+        self.trainloader = None
+        self.client = None
+        self.first = None
 
+        self.set_args()
+        self.init_client_values()
+        self.apply_stress()
+        self.monitor_network()
+        self.limit_network_bandwidth()
+        self.init_client()
+        self.start_FL_process()
+        self.finish_client()
 
-def set_args():
-    if model != '':
-        Config.model_name = model
-    Config.COMM = communicator
+    def set_args(self):
+        if self.model != '':
+            Config.model_name = self.model
+        Config.COMM = self.communicator
 
-    if Config.model_name == 'VGG5':
-        Config.split_layer = [6] * Config.K
-        Config.model_len = 7
+        if Config.model_name == 'VGG5':
+            Config.split_layer = [6] * Config.K
+            Config.model_len = 7
 
+    def init_client_values(self):
+        # set init values to send to client
+        self.ip_address = Config.HOST2IP[socket.gethostname()]
+        self.index = Config.CLIENTS_CONFIG[self.ip_address]
+        self.datalen = Config.N / Config.K
+        self.split_layer = Config.split_layer[self.index]
+        self.LR = Config.LR
 
-def init_client_values():
-    global ip_address, index, datalen, split_layer, LR
-    # set init values to send to client
-    ip_address = Config.HOST2IP[socket.gethostname()]
-    index = Config.CLIENTS_CONFIG[ip_address]
-    datalen = Config.N / Config.K
-    split_layer = Config.split_layer[index]
-    LR = Config.LR
+    def apply_stress(self):
+        # apply stress
+        if self.stress is not None:
+            if self.stress == 'cpu':  # or int(ip_address[:-1]) % 2 == 0:
+                os.system('sudo test')
+                os.system(Utils.tools[self.stress])
+            else:
+                # host =
+                # TODO: Fix netstress for my project - rethink my options
+                os.system('netstress -m host %s &', )
 
-
-def apply_stress():
-    # apply stress
-    if stress is not None:
-        if stress == 'cpu':  # or int(ip_address[:-1]) % 2 == 0:
+    def monitor_network(self):
+        if self.monitor is not None:
             os.system('sudo test')
-            os.system(Utils.tools[stress])
-        else:
-            # host =
-            # TODO: Fix netstress for my project - rethink my options
-            os.system('netstress -m host %s &', )
+            os.system('sudo tshark -q -z io,stat,30,"COUNT(tcp.analysis.retransmission) tcp.analysis.retransmission" &')
 
+    def limit_network_bandwidth(self):
+        # apply network limit
+        if self.limiter is not None:
+            os.system('sudo tc qdisc del dev ens160 root')
+            os.system(Utils.tools[self.limiter])
 
-def monitor_network():
-    if monitor is not None:
-        os.system('sudo test')
-        os.system('sudo tshark -q -z io,stat,30,"COUNT(tcp.analysis.retransmission) tcp.analysis.retransmission" &')
+    def init_client(self):
+        logger.info('Preparing Client')
+        # call client - sets up client for FL process
+        self.client = Client(self.index, self.ip_address, Config.SERVER_ADDR, Config.SERVER_PORT, self.datalen)
 
+        # initialise client
+        self.first = True  # First initialization control
+        self.client.initialize(self.split_layer, self.first, self.LR)
+        self.first = False
 
-def limit_network_bandwidth():
-    # apply network limit
-    if limiter is not None:
-        os.system('sudo tc qdisc del dev ens160 root')
-        os.system(Utils.tools[limiter])
+        # get number of cores
+        logger.info('Preparing Data.')
+        cpu_count = multiprocessing.cpu_count()
+        self.trainloader, classes = Utils.get_local_dataloader(self.index, cpu_count)
 
-
-def init_client():
-    global trainloader, client, first
-    logger.info('Preparing Client')
-    # call client - sets up client for FL process
-    client = Client(index, ip_address, Config.SERVER_ADDR, Config.SERVER_PORT, datalen)
-
-    # initialise client
-    first = True  # First initialization control
-    client.initialize(split_layer, first, LR)
-    first = False
-
-    # get number of cores
-    logger.info('Preparing Data.')
-    cpu_count = multiprocessing.cpu_count()
-    trainloader, classes = Utils.get_local_dataloader(index, cpu_count)
-
-
-def start_FL_process():
-    if client is None:
-        pass
-    global LR
-    # start training process
-    for r in range(Config.R):
-        # logs for user
-        logger.info('====================================>')
-        logger.info('ROUND: {} START'.format(r))
-
-        client.train(trainloader)
-        logger.info('ROUND: {} END'.format(r))
-
-        logger.info('==> Waiting for aggregration')
-        client.upload()
-
-        logger.info('==> Reinitialization for Round : {:}'.format(r + 1))
-        s_time_rebuild = time.time()
-
-        # decrease learning rate from round 50
-        if r > 49:
-            LR = Config.LR * 0.1
-
-        # reinitialise for next round
-        client.reinitialize(Config.split_layer[index], first, LR)
-        e_time_rebuild = time.time()
-        logger.info('Rebuild time: ' + str(e_time_rebuild - s_time_rebuild))
-        logger.info('==> Reinitialization Finish')
-
-
-logger.info('FL Training')
-
-
-def finish_client():
-    # finish client
-    client.finish()
-    if monitor is not None:
-        os.system('sudo pkill tshark')
-    if Config.COMM == 'UDP':
-        while True:
+    def start_FL_process(self):
+        if self.client is None:
             pass
+        # start training process
+        for r in range(Config.R):
+            # logs for user
+            logger.info('====================================>')
+            logger.info('ROUND: {} START'.format(r))
 
+            self.client.train(self.trainloader)
+            logger.info('ROUND: {} END'.format(r))
 
-if __name__ == '__main__':
-    parse_args()
-    set_args()
-    init_client_values()
-    apply_stress()
-    monitor_network()
-    limit_network_bandwidth()
-    init_client()
-    start_FL_process()
-    finish_client()
+            logger.info('==> Waiting for aggregration')
+            self.client.upload()
+
+            logger.info('==> Reinitialization for Round : {:}'.format(r + 1))
+            s_time_rebuild = time.time()
+
+            # decrease learning rate from round 50
+            if r > 49:
+                self.LR = Config.LR * 0.1
+
+            # reinitialise for next round
+            self.client.reinitialize(Config.split_layer[self.index], self.first, self.LR)
+            e_time_rebuild = time.time()
+            logger.info('Rebuild time: ' + str(e_time_rebuild - s_time_rebuild))
+            logger.info('==> Reinitialization Finish')
+
+        logger.info('FL Training')
+
+    def finish_client(self):
+        # finish client
+        self.client.finish()
+        if self.monitor is not None:
+            os.system('sudo pkill tshark')
+        if Config.COMM == 'UDP':
+            while True:
+                pass

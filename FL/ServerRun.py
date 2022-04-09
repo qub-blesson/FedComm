@@ -15,134 +15,107 @@ logger = logging.getLogger(__name__)
 # add all files to path
 sys.path.append('../')
 
-# global variables
-stress = ''
-limiter = ''
-communicator = None
-model = None
-results = ''
-server = None
-first = True
-res = {}
-state = None
-comp_time = 0
 
+class ServerRun:
+    def __init__(self, communicator, model, stress, limiter):
+        # global variables
+        self.stress = stress
+        self.limiter = limiter
+        self.communicator = communicator
+        self.model = model
+        self.results = ''
+        self.server = None
+        self.first = True
+        self.res = {}
+        self.state = None
+        self.comp_time = 0
 
-def parse_args():
-    global stress, limiter, communicator, model
-    # set arg parse
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--communicator', help='Communication protocol', default='TCP')
-    parser.add_argument('--model', help='Model type: VGG5, VGG8, VGG18', default='VGG8')
-    parser.add_argument('--stress', help='Tool used to apply stress: cpu, net', default='')
-    parser.add_argument('--limiter', help='Tool used to limit network: 3G, 4G, Wi-Fi', default='')
-    parser.add_argument('--rounds', help='Number of training rounds', type=int, default=5)
-    args = parser.parse_args()
-    # store parameters based on input
-    stress = args.stress
-    limiter = args.limiter
-    Config.R = args.rounds
-    communicator = args.communicator
-    model = args.model
+        self.update_model()
+        self.create_results_file()
+        self.init_server()
+        self.start_FL_process()
+        self.finish_server()
 
+    def update_model(self):
+        if self.model != '':
+            Config.model_name = self.model
+        Config.COMM = self.communicator
 
-def update_model():
-    if model != '':
-        Config.model_name = model
-    Config.COMM = communicator
+        # update VGG5 config if selected
+        if Config.model_name == 'VGG5':
+            Config.split_layer = [6] * Config.K
+            Config.model_len = 7
 
-    # update VGG5 config if selected
-    if Config.model_name == 'VGG5':
-        Config.split_layer = [6] * Config.K
-        Config.model_len = 7
+    def create_results_file(self):
+        # name results file
+        self.results = '../results/FedBench_' + Config.COMM + '_' + self.limiter + '_' + self.stress + '_'\
+                  + Config.model_name + '.pkl'
+        # initialize results
+        self.res = {'training_time': [], 'test_acc_record': [], 'communication_time': []}
 
+    def init_server(self):
+        # make server based on application layer protocol selected
+        if self.communicator == 'TCP' or self.communicator == 'UDP':
+            self.server = Server(0, Config.SERVER_ADDR, Config.SERVER_PORT)
+        else:
+            self.server = Server(Config.K, Config.SERVER_ADDR, Config.SERVER_PORT)
+        # initialize server
+        self.server.initialize(self.first)
 
-def create_results_file():
-    global results, res
-    # name results file
-    results = '../results/FedBench_'+Config.COMM+'_'+limiter+'_'+stress+'_'+Config.model_name+'.pkl'
-    # initialize results
-    res = {'training_time': [], 'test_acc_record': [], 'communication_time': []}
+        # set first to false
+        self.first = False
 
+    def start_FL_process(self):
+        # start FL process on a per-round basis
+        for r in range(Config.R):
+            logger.info('====================================>')
+            logger.info('==> Round {:} Start'.format(r))
 
-def init_server():
-    global server, first
+            # time training and aggregation process
+            s_time = time.time()
+            self.state = self.server.train()
+            self.server.aggregate(Config.CLIENTS_LIST)
+            e_time = time.time()
 
-    # make server based on application layer protocol selected
-    if communicator == 'TCP' or communicator == 'UDP':
-        server = Server(0, Config.SERVER_ADDR, Config.SERVER_PORT)
-    else:
-        server = Server(Config.K, Config.SERVER_ADDR, Config.SERVER_PORT)
-    # initialize server
-    server.initialize(first)
+            # Recording each round training time and test accuracy
+            training_time = e_time - s_time
+            self.res['training_time'].append(training_time)
+            if self.communicator != 'UDP':
+                self.comp_time = 0
+                for key in self.state:
+                    self.comp_time += self.state[key]
+                self.comp_time /= Config.K
+                self.res['communication_time'].append(training_time - self.comp_time)
+            test_acc = self.server.test()
+            self.res['test_acc_record'].append(test_acc)
 
-    # set first to false
-    first = False
+            # write results to pickle output file
+            with open(self.results, 'wb') as f:
+                pickle.dump(self.res, f)
 
+            # log for user
+            logger.info('Round Finish')
+            if self.communicator != 'UDP':
+                logger.info('==> Round Training Computation Time: {:}'.format(self.comp_time))
+                logger.info('==> Round Training Communication Time: {:}'.format(training_time - self.comp_time))
 
-def start_FL_process():
-    global state, comp_time
-    # start FL process on a per-round basis
-    for r in range(Config.R):
-        logger.info('====================================>')
-        logger.info('==> Round {:} Start'.format(r))
+            logger.info('==> Reinitialization for Round : {:}'.format(r + 1))
 
-        # time training and aggregation process
-        s_time = time.time()
-        state = server.train()
-        server.aggregate(Config.CLIENTS_LIST)
-        e_time = time.time()
+            # re-initialise for new round
+            self.server.reinitialize(self.first)
+            logger.info('==> Reinitialization Finish')
 
-        # Recording each round training time and test accuracy
-        training_time = e_time - s_time
-        res['training_time'].append(training_time)
-        if communicator != 'UDP':
-            comp_time = 0
-            for key in state:
-                comp_time += state[key]
+    def finish_server(self):
+        # server finish
+        state = self.server.finish()
+
+        if self.communicator == 'UDP':
+            comp_time = np.array([0] * Config.R)
+
+            for i in state:
+                comp_time = np.add(comp_time, state[i])
             comp_time /= Config.K
-            res['communication_time'].append(training_time - comp_time)
-        test_acc = server.test()
-        res['test_acc_record'].append(test_acc)
-
-        # write results to pickle output file
-        with open(results, 'wb') as f:
-            pickle.dump(res, f)
-
-        # log for user
-        logger.info('Round Finish')
-        if communicator != 'UDP':
-            logger.info('==> Round Training Computation Time: {:}'.format(comp_time))
-            logger.info('==> Round Training Communication Time: {:}'.format(training_time - comp_time))
-
-        logger.info('==> Reinitialization for Round : {:}'.format(r + 1))
-
-        # re-initialise for new round
-        server.reinitialize(first)
-        logger.info('==> Reinitialization Finish')
-
-
-def finish_server():
-    global state, comp_time
-    # server finish
-    state = server.finish()
-
-    if communicator == 'UDP':
-        comp_time = np.array([0] * Config.R)
-
-        for i in state:
-            comp_time = np.add(comp_time, state[i])
-        comp_time /= Config.K
-        for i in range(Config.R):
-            res['communication_time'].append(res['training_time'][i] - comp_time[i])
-        with open(results, 'wb') as f:
-            pickle.dump(res, f)
-
-
-if __name__ == '__main__':
-    parse_args()
-    update_model()
-    create_results_file()
-    init_server()
-    start_FL_process()
-    finish_server()
+            for i in range(Config.R):
+                self.res['communication_time'].append(self.res['training_time'][i] - comp_time[i])
+            with open(self.results, 'wb') as f:
+                pickle.dump(self.res, f)
