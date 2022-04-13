@@ -2,7 +2,7 @@ import time
 import torch
 import pickle
 import argparse
-from Server import Server
+from FL.Server import Server
 import Config
 import logging
 import sys
@@ -17,7 +17,7 @@ sys.path.append('../')
 
 
 class ServerRun:
-    def __init__(self, communicator, model, stress, limiter):
+    def __init__(self, communicator, model, stress, limiter, test=False):
         # global variables
         self.stress = stress
         self.limiter = limiter
@@ -30,11 +30,12 @@ class ServerRun:
         self.state = None
         self.comp_time = 0
 
-        self.update_model()
-        self.create_results_file()
-        self.init_server()
-        self.start_FL_process()
-        self.finish_server()
+        if not test:
+            self.update_model()
+            self.create_results_file()
+            self.init_server()
+            self.start_FL_process()
+            self.finish_server()
 
     def update_model(self):
         if self.model != '':
