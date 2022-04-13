@@ -4,7 +4,7 @@ import time
 import multiprocessing
 import os
 import argparse
-from Client import Client
+from FL.Client import Client
 import Config
 import Utils
 import logging
@@ -18,7 +18,7 @@ sys.path.append('../')
 
 
 class ClientRun:
-    def __init__(self, communicator, model, stress, limiter, monitor):
+    def __init__(self, communicator, model, stress, limiter, monitor, test=False):
         # global variables
         self.stress = stress
         self.limiter = limiter
@@ -35,14 +35,15 @@ class ClientRun:
         self.client = None
         self.first = None
 
-        self.set_args()
-        self.init_client_values()
-        self.apply_stress()
-        self.monitor_network()
-        self.limit_network_bandwidth()
-        self.init_client()
-        self.start_FL_process()
-        self.finish_client()
+        if not test:
+            self.set_args()
+            self.init_client_values()
+            self.apply_stress()
+            self.monitor_network()
+            self.limit_network_bandwidth()
+            self.init_client()
+            self.start_FL_process()
+            self.finish_client()
 
     def set_args(self):
         if self.model != '':
@@ -55,14 +56,19 @@ class ClientRun:
 
     def init_client_values(self):
         # set init values to send to client
-        self.ip_address = Config.HOST2IP[socket.gethostname()]
-        self.index = Config.CLIENTS_CONFIG[self.ip_address]
+        try:
+            self.ip_address = Config.HOST2IP[socket.gethostname()]
+            self.index = Config.CLIENTS_CONFIG[self.ip_address]
+            self.split_layer = Config.split_layer[self.index]
+        except KeyError as e:
+            print("hostname not in list")
         self.datalen = Config.N / Config.K
-        self.split_layer = Config.split_layer[self.index]
         self.LR = Config.LR
 
+    # could not test on Windows machine
     def apply_stress(self):
         # apply stress
+        # os.system has been tested - we can expect it too work
         if self.stress is not None:
             if self.stress == 'cpu':  # or int(ip_address[:-1]) % 2 == 0:
                 os.system('sudo test')
@@ -72,14 +78,18 @@ class ClientRun:
                 # TODO: Fix netstress for my project - rethink my options
                 os.system('netstress -m host %s &', )
 
+    # could not test on Windows machine
     def monitor_network(self):
         if self.monitor is not None:
+            # os.system has been tested - we can expect it too work
             os.system('sudo test')
             os.system('sudo tshark -q -z io,stat,30,"COUNT(tcp.analysis.retransmission) tcp.analysis.retransmission" &')
 
+    # could not test on Windows machine
     def limit_network_bandwidth(self):
         # apply network limit
         if self.limiter is not None:
+            # os.system has been tested - we can expect it too work
             os.system('sudo tc qdisc del dev ens160 root')
             os.system(Utils.tools[self.limiter])
 

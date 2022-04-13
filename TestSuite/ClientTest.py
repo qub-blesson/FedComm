@@ -1,17 +1,12 @@
 import collections
-import socketserver
 import unittest
 import sys
 
 import gevent.server
-import numpy as np
 import torch
-import torchvision
-import paho
 
 import Config
 import Utils
-import Vgg
 from FL.Client import Client
 
 sys.path.append('../')

@@ -19,7 +19,7 @@ from FL.Server import Server
 sys.path.append('../')
 
 
-class MyTestCase(unittest.TestCase):
+class ServerTest(unittest.TestCase):
     def test_get_model(self):
         Config.COMM = ''
         self.server = Server(0, '', '', test=True)
