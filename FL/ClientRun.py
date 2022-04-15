@@ -1,3 +1,5 @@
+import signal
+
 import torch
 import socket
 import time
@@ -73,10 +75,12 @@ class ClientRun:
             if self.stress == 'cpu':  # or int(ip_address[:-1]) % 2 == 0:
                 os.system('sudo test')
                 os.system(Utils.tools[self.stress])
-            else:
-                # host =
-                # TODO: Fix netstress for my project - rethink my options
-                os.system('netstress -m host %s &', )
+            elif self.stress == 'net':
+                if self.index % 2 == 0:
+                    os.system('netstress -m host -n 9999 &')
+                else:
+                    os.system('netstress -s slave -h '+Config.CLIENTS_LIST[self.index+1]+'-n 9999 &')
+                os.system(signal.SIGINT.__str__())
 
     # could not test on Windows machine
     def monitor_network(self):
