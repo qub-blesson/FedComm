@@ -148,7 +148,7 @@ class ClientRun:
         if self.monitor is not None:
             os.system('sudo pkill tshark')
         if self.stress == 'net':
-            os.system('puser 5678/tcp -k')
+            os.system('fuser 5678/tcp -k')
         if Config.COMM == 'UDP':
             while True:
                 pass
