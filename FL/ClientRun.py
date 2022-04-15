@@ -79,8 +79,8 @@ class ClientRun:
                 if self.index % 2 == 0:
                     os.system('netstress -m host -n 9999 &')
                 else:
-                    os.system('netstress -s slave -h '+Config.CLIENTS_LIST[self.index+1]+'-n 9999 &')
-                os.system(signal.SIGINT.__str__())
+                    time.sleep(20)
+                    os.system('netstress -s slave -h '+Config.CLIENTS_LIST[self.index-1]+' -n 9999 &')
 
     # could not test on Windows machine
     def monitor_network(self):
@@ -147,6 +147,8 @@ class ClientRun:
         self.client.finish()
         if self.monitor is not None:
             os.system('sudo pkill tshark')
+        if self.stress == 'net':
+            os.system('puser 5678/tcp -k')
         if Config.COMM == 'UDP':
             while True:
                 pass
