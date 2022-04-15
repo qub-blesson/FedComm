@@ -72,10 +72,10 @@ class ClientRun:
         # apply stress
         # os.system has been tested - we can expect it too work
         if self.stress is not None:
-            if self.stress == 'cpu':  # or int(ip_address[:-1]) % 2 == 0:
+            if self.stress == 'cpu' or self.stress == 'all':
                 os.system('sudo test')
                 os.system(Utils.tools[self.stress])
-            elif self.stress == 'net':
+            if self.stress == 'net' or self.stress == 'all':
                 if self.index % 2 == 0:
                     os.system('netstress -m host -n 9999 &')
                 else:
