@@ -40,8 +40,10 @@ class IntegrationTest(unittest.TestCase):
                 output.append(pickle.load(f))
 
             self.assertEqual(len(output[0]['communication_time']), Config.R)  # length should be the same as the round
-            for i in range(output[0]['test_acc_record']):
-                self.assertAlmostEqual(output[0]['test_acc_recorgd'][i], accuracy[i], delta=0.5)
+            j = 0
+            for i in output[0]['test_acc_record']:
+                self.assertAlmostEqual(i, accuracy[j], delta=0.5)
+                j += 1
 
         else:
             ClientRun(communicator, model, stress, limiter, monitor)
