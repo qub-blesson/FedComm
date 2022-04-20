@@ -148,5 +148,5 @@ if __name__ == '__main__':
     intTest = IntegrationTest()
     intTest.test_TCP_1round_vgg5()
     intTest.test_TCP_1round_vgg8()
-    intTest.test_TCP_5round_vgg5()g
+    intTest.test_TCP_5round_vgg5()
     intTest.test_TCP_5round_vgg8()
