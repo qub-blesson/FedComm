@@ -50,9 +50,10 @@ class ServerRun:
     def create_results_file(self, integrated_test):
         # name results file
         if integrated_test:
-            self.results = '../results/output'
-        self.results = '../results/FedBench_' + Config.COMM + '_' + self.limiter + '_' + self.stress + '_'\
-                  + Config.model_name + '.pkl'
+            self.results = '../results/output.pkl'
+        else:
+            self.results = '../results/FedBench_' + Config.COMM + '_' + self.limiter + '_' + self.stress + '_'\
+                      + Config.model_name + '.pkl'
         # initialize results
         self.res = {'training_time': [], 'test_acc_record': [], 'communication_time': []}
 
