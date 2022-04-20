@@ -32,6 +32,7 @@ accuracy_vgg8 = [44.48, 53.7, 56.33, 62.91, 64.48, 65.7, 67.46, 68.4, 69.9, 70.8
 
 class IntegrationTest(unittest.TestCase):
     def test_TCP_1round_vgg5(self):
+        time.sleep(30)
         target = '192.168.101.120'
         stress = None
         limiter = None
@@ -59,6 +60,7 @@ class IntegrationTest(unittest.TestCase):
             ClientRun(communicator, model, stress, limiter, monitor)
 
     def test_TCP_1round_vgg8(self):
+        time.sleep(30)
         target = '192.168.101.120'
         stress = None
         limiter = None
@@ -86,6 +88,7 @@ class IntegrationTest(unittest.TestCase):
             ClientRun(communicator, model, stress, limiter, monitor)
 
     def test_TCP_5round_vgg5(self):
+        time.sleep(30)
         target = '192.168.101.120'
         stress = None
         limiter = None
@@ -113,6 +116,7 @@ class IntegrationTest(unittest.TestCase):
             ClientRun(communicator, model, stress, limiter, monitor)
 
     def test_TCP_5round_vgg8(self):
+        time.sleep(30)
         target = '192.168.101.120'
         stress = None
         limiter = None
@@ -143,9 +147,6 @@ class IntegrationTest(unittest.TestCase):
 if __name__ == '__main__':
     intTest = IntegrationTest()
     intTest.test_TCP_1round_vgg5()
-    time.sleep(30)
     intTest.test_TCP_1round_vgg8()
-    time.sleep(30)
-    intTest.test_TCP_5round_vgg5()
-    time.sleep(30)
+    intTest.test_TCP_5round_vgg5()g
     intTest.test_TCP_5round_vgg8()
