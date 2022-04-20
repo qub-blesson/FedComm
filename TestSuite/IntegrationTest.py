@@ -1,12 +1,37 @@
-import os
+import argparse
+import socket
+import sys
+
+# add all files to path
 import unittest
 
-from cffi.setuptools_ext import execfile
-
-import FL.Run as Run
+sys.path.append('../')
+import Config
+from FL.ClientRun import ClientRun
+from FL.ServerRun import ServerRun
 
 
 class IntegrationTest(unittest.TestCase):
-    def test_system(self):
-        os.system('python3 ../FL.Run --communicator TCP --model VGG5 --limiter Wi-Fi --rounds 1')
+    def test_TCP_1round_vgg5(self):
+        target = '192.168.101.120'
+        stress = None
+        limiter = None
+        communicator = 'TCP'
+        model = 'VGG5'
+        monitor = None
+        Config.R = 1
+        if target == socket.gethostbyname(socket.gethostname()) or socket.gethostname() not in Config.HOST2IP:
+            if stress is None:
+                stress = ''
+            if limiter is None:
+                limiter = ''
+            ServerRun(communicator, model, stress, limiter)
+        else:
+            ClientRun(communicator, model, stress, limiter, monitor)
+
         self.assertTrue(False)
+
+
+if __name__ == '__main__':
+    intTest = IntegrationTest()
+    intTest.test_TCP_1round_vgg5()
