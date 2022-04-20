@@ -17,7 +17,7 @@ sys.path.append('../')
 
 
 class ServerRun:
-    def __init__(self, communicator, model, stress, limiter, test=False):
+    def __init__(self, communicator, model, stress, limiter, test=False, integrated_test=False):
         # global variables
         self.stress = stress
         self.limiter = limiter
@@ -32,7 +32,7 @@ class ServerRun:
 
         if not test:
             self.update_model()
-            self.create_results_file()
+            self.create_results_file(integrated_test)
             self.init_server()
             self.start_FL_process()
             self.finish_server()
@@ -47,8 +47,10 @@ class ServerRun:
             Config.split_layer = [6] * Config.K
             Config.model_len = 7
 
-    def create_results_file(self):
+    def create_results_file(self, integrated_test):
         # name results file
+        if integrated_test:
+            self.results = '../results/output'
         self.results = '../results/FedBench_' + Config.COMM + '_' + self.limiter + '_' + self.stress + '_'\
                   + Config.model_name + '.pkl'
         # initialize results

@@ -1,4 +1,5 @@
 import argparse
+import pickle
 import socket
 import sys
 
@@ -25,11 +26,12 @@ class IntegrationTest(unittest.TestCase):
                 stress = ''
             if limiter is None:
                 limiter = ''
-            ServerRun(communicator, model, stress, limiter)
+            ServerRun(communicator, model, stress, limiter, integrated_test=True)
+            output = []
+            with open('TCP_TC1_VGG8.pkl', 'rb') as f:
+                output.append(pickle.load(f))
         else:
             ClientRun(communicator, model, stress, limiter, monitor)
-
-        self.assertTrue(False)
 
 
 if __name__ == '__main__':
