@@ -101,7 +101,8 @@ class Client(Communicator):
             logger.info(self.packets_sent)
             self.send_msg_tcp_client(self.tcp_sock, self.computation_time)
         elif Config.COMM == 'TCP':
-            pass
+            self.sock.shutdown(SHUT_RDWR)
+            self.sock.close()
         else:
             if self.q.get() == 'DONE':
                 pass

@@ -184,9 +184,6 @@ class Communicator(object):
         if self.client is not None:
             self.client.loop_stop()
             self.client.disconnect()
-        if Config.COMM:
-            self.sock.shutdown(SHUT_RDWR)
-            self.sock.close()
 
     # equivalent to recv_msg
     def on_message_MQTT(self, client, userdata, message):
