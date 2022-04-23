@@ -229,7 +229,7 @@ class IntegrationTest(unittest.TestCase):
         communicator = 'MQTT'
         model = 'VGG5'
         monitor = None
-        Config.R = 5
+        Config.R = 1
         if target == socket.gethostbyname(socket.gethostname()) or socket.gethostname() not in Config.HOST2IP:
             if stress is None:
                 stress = ''
