@@ -86,7 +86,7 @@ class Communicator(object):
             self.thread = threading.Thread(target=self.recv_msg_amqp)
             self.thread.start()
         # ZMTP specific setup
-        elif Config.COMM == '0MQ':
+        elif Config.COMM == '0MQ' or Config.COMM == 'ZMTP' or Config.COMM == 'ZMQ':
             # create ZMTP context
             self.context = zmq.Context()
             self.pub_socket = None
