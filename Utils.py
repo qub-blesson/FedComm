@@ -30,9 +30,14 @@ torch.manual_seed(0)
 # establish tools to be used throughout FL process
 tools = {'cpu': 'stress-ng --cpu 1 --timeout 1500s &',
          'net1': 'netstress -m host &',
-         'Wi-Fi': 'sudo tc qdisc add dev ens160 root tbf rate 60mbit latency 50ms burst 1600 &',
+         'WI-FI': 'sudo tc qdisc add dev ens160 root tbf rate 60mbit latency 50ms burst 1600 &',
          '4G': 'sudo tc qdisc add dev ens160 root tbf rate 20mbit latency 50ms burst 1600 &',
          '3G': 'sudo tc qdisc add dev ens160 root tbf rate 5mbit latency 50ms burst 1600 &'}
+
+available_communicators = {'TCP', 'UDP', 'MQTT', 'AMQP', 'ZMTP', None}
+available_models = {'VGG5', 'VGG8', None}
+available_stress = {'CPU', 'NET', 'ALL', None}
+available_limiter = {'3G', '4G', 'WIFI', 'WI-FI', None}
 
 
 def get_local_dataloader(CLIENT_INDEX, cpu_count):

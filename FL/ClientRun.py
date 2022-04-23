@@ -72,10 +72,10 @@ class ClientRun:
         # apply stress
         # os.system has been tested - we can expect it too work
         if self.stress is not None:
-            if self.stress == 'cpu' or self.stress == 'all':
+            if self.stress == 'CPU' or self.stress == 'ALL':
                 os.system('sudo test')
                 os.system(Utils.tools[self.stress])
-            if self.stress == 'net' or self.stress == 'all':
+            if self.stress == 'NET' or self.stress == 'ALL':
                 if self.index % 2 == 0:
                     os.system('netstress -m host -n 9999 &')
                 else:
@@ -147,7 +147,7 @@ class ClientRun:
         self.client.finish()
         if self.monitor is not None:
             os.system('sudo pkill tshark')
-        if self.stress == 'net':
+        if self.stress == 'NET':
             os.system('fuser 5678/tcp -k')
         if Config.COMM == 'UDP':
             while True:

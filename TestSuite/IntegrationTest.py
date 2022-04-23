@@ -187,7 +187,7 @@ class IntegrationTest(unittest.TestCase):
             self.assertEqual(len(output[0]['communication_time']), Config.R)  # length should be the same as the round
             j = 0
             for i in output[0]['test_acc_record']:
-                self.assertAlmostEqual(i, accuracy_vgg8[j], delta=5)
+                self.assertAlmostEqual(i, accuracy_vgg5[j], delta=5)
                 j += 1
 
         else:
@@ -243,7 +243,7 @@ class IntegrationTest(unittest.TestCase):
             self.assertEqual(len(output[0]['communication_time']), Config.R)  # length should be the same as the round
             j = 0
             for i in output[0]['test_acc_record']:
-                self.assertAlmostEqual(i, accuracy_vgg8[j], delta=5)
+                self.assertAlmostEqual(i, accuracy_vgg5[j], delta=5)
                 j += 1
 
         else:
@@ -299,7 +299,7 @@ class IntegrationTest(unittest.TestCase):
             self.assertEqual(len(output[0]['communication_time']), Config.R)  # length should be the same as the round
             j = 0
             for i in output[0]['test_acc_record']:
-                self.assertAlmostEqual(i, accuracy_vgg8[j], delta=5)
+                self.assertAlmostEqual(i, accuracy_vgg5[j], delta=5)
                 j += 1
 
         else:
@@ -355,7 +355,7 @@ class IntegrationTest(unittest.TestCase):
             self.assertEqual(len(output[0]['communication_time']), Config.R)  # length should be the same as the round
             j = 0
             for i in output[0]['test_acc_record']:
-                self.assertAlmostEqual(i, accuracy_vgg8[j], delta=5)
+                self.assertAlmostEqual(i, accuracy_vgg5[j], delta=5)
                 j += 1
 
         else:
@@ -411,7 +411,7 @@ class IntegrationTest(unittest.TestCase):
             self.assertEqual(len(output[0]['communication_time']), Config.R)  # length should be the same as the round
             j = 0
             for i in output[0]['test_acc_record']:
-                self.assertAlmostEqual(i, accuracy_vgg8[j], delta=5)
+                self.assertAlmostEqual(i, accuracy_vgg5[j], delta=5)
                 j += 1
 
         else:
@@ -467,7 +467,7 @@ class IntegrationTest(unittest.TestCase):
             self.assertEqual(len(output[0]['communication_time']), Config.R)  # length should be the same as the round
             j = 0
             for i in output[0]['test_acc_record']:
-                self.assertAlmostEqual(i, accuracy_vgg8[j], delta=5)
+                self.assertAlmostEqual(i, accuracy_vgg5[j], delta=5)
                 j += 1
 
         else:
