@@ -150,7 +150,7 @@ class Communicator(object):
             self.client.publish(self.pub_topic, msg_pickle)
         elif Config.COMM == 'AMQP':
             self.pub_channel.basic_publish(exchange=self.pub_topic, routing_key='', body=msg_pickle)
-        elif Config.COMM == '0MQ':
+        elif Config.COMM == '0MQ' or Config.COMM == 'ZMTP' or Config.COMM == 'ZMQ':
             self.pub_socket.send(msg_pickle)
         #else:
 
