@@ -159,7 +159,7 @@ class IntegrationTest(unittest.TestCase):
             self.assertEqual(len(output[0]['communication_time']), Config.R)  # length should be the same as the round
             j = 0
             for i in output[0]['test_acc_record']:
-                self.assertAlmostEqual(i, accuracy_vgg8[j], delta=0)
+                self.assertAlmostEqual(i, accuracy_vgg8[j], delta=0.5)
                 j += 1
 
         else:
@@ -187,7 +187,7 @@ class IntegrationTest(unittest.TestCase):
             self.assertEqual(len(output[0]['communication_time']), Config.R)  # length should be the same as the round
             j = 0
             for i in output[0]['test_acc_record']:
-                self.assertAlmostEqual(i, accuracy_vgg8[j], delta=0)
+                self.assertAlmostEqual(i, accuracy_vgg8[j], delta=0.5)
                 j += 1
 
         else:
@@ -215,7 +215,7 @@ class IntegrationTest(unittest.TestCase):
             self.assertEqual(len(output[0]['communication_time']), Config.R)  # length should be the same as the round
             j = 0
             for i in output[0]['test_acc_record']:
-                self.assertAlmostEqual(i, accuracy_vgg8[j], delta=0)
+                self.assertAlmostEqual(i, accuracy_vgg8[j], delta=0.5)
                 j += 1
 
         else:
@@ -243,7 +243,119 @@ class IntegrationTest(unittest.TestCase):
             self.assertEqual(len(output[0]['communication_time']), Config.R)  # length should be the same as the round
             j = 0
             for i in output[0]['test_acc_record']:
-                self.assertAlmostEqual(i, accuracy_vgg8[j], delta=0)
+                self.assertAlmostEqual(i, accuracy_vgg8[j], delta=0.5)
+                j += 1
+
+        else:
+            ClientRun(communicator, model, stress, limiter, monitor)
+
+    def test_AMQP_5round_vgg8(self):
+        #time.sleep(90)
+        target = '192.168.101.120'
+        stress = None
+        limiter = None
+        communicator = 'AMQP'
+        model = 'VGG8'
+        monitor = None
+        Config.R = 5
+        if target == socket.gethostbyname(socket.gethostname()) or socket.gethostname() not in Config.HOST2IP:
+            if stress is None:
+                stress = ''
+            if limiter is None:
+                limiter = ''
+            ServerRun(communicator, model, stress, limiter, integrated_test=True)
+            output = []
+            with open('../results/output.pkl', 'rb') as f:
+                output.append(pickle.load(f))
+
+            self.assertEqual(len(output[0]['communication_time']), Config.R)  # length should be the same as the round
+            j = 0
+            for i in output[0]['test_acc_record']:
+                self.assertAlmostEqual(i, accuracy_vgg8[j], delta=0.5)
+                j += 1
+
+        else:
+            ClientRun(communicator, model, stress, limiter, monitor)
+
+    def test_AMQP_5round_vgg5(self):
+        #time.sleep(90)
+        target = '192.168.101.120'
+        stress = None
+        limiter = None
+        communicator = 'AMQP'
+        model = 'VGG5'
+        monitor = None
+        Config.R = 5
+        if target == socket.gethostbyname(socket.gethostname()) or socket.gethostname() not in Config.HOST2IP:
+            if stress is None:
+                stress = ''
+            if limiter is None:
+                limiter = ''
+            ServerRun(communicator, model, stress, limiter, integrated_test=True)
+            output = []
+            with open('../results/output.pkl', 'rb') as f:
+                output.append(pickle.load(f))
+
+            self.assertEqual(len(output[0]['communication_time']), Config.R)  # length should be the same as the round
+            j = 0
+            for i in output[0]['test_acc_record']:
+                self.assertAlmostEqual(i, accuracy_vgg8[j], delta=0.5)
+                j += 1
+
+        else:
+            ClientRun(communicator, model, stress, limiter, monitor)
+
+    def test_AMQP_1round_vgg8(self):
+        #time.sleep(90)
+        target = '192.168.101.120'
+        stress = None
+        limiter = None
+        communicator = 'AMQP'
+        model = 'VGG8'
+        monitor = None
+        Config.R = 1
+        if target == socket.gethostbyname(socket.gethostname()) or socket.gethostname() not in Config.HOST2IP:
+            if stress is None:
+                stress = ''
+            if limiter is None:
+                limiter = ''
+            ServerRun(communicator, model, stress, limiter, integrated_test=True)
+            output = []
+            with open('../results/output.pkl', 'rb') as f:
+                output.append(pickle.load(f))
+
+            self.assertEqual(len(output[0]['communication_time']), Config.R)  # length should be the same as the round
+            j = 0
+            for i in output[0]['test_acc_record']:
+                self.assertAlmostEqual(i, accuracy_vgg8[j], delta=0.5)
+                j += 1
+
+        else:
+            ClientRun(communicator, model, stress, limiter, monitor)
+
+    def test_AMQP_1round_vgg5(self):
+        #time.sleep(90)
+        target = '192.168.101.120'
+        stress = None
+        limiter = None
+        communicator = 'AMQP'
+        model = 'VGG8'
+        monitor = None
+        Config.R = 1
+        if target == socket.gethostbyname(socket.gethostname()) or socket.gethostname() not in Config.HOST2IP:
+            if stress is None:
+                stress = ''
+            if limiter is None:
+                limiter = ''
+            ServerRun(communicator, model, stress, limiter, integrated_test=True)
+            output = []
+            with open('../results/output.pkl', 'rb') as f:
+                output.append(pickle.load(f))
+
+            self.assertEqual(len(output[0]['communication_time']), Config.R)  # length should be the same as the round
+            j = 0
+            for i in output[0]['test_acc_record']:
+                self.assertAlmostEqual(i, accuracy_vgg8[j], delta=0.5)
                 j += 1
 
         else:
