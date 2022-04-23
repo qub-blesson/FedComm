@@ -2,16 +2,17 @@ import argparse
 import socket
 import sys
 import logging
-import Utils
 
-# set logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
 # add all files to path
 sys.path.append('../')
 import Config
 from FL.ClientRun import ClientRun
 from FL.ServerRun import ServerRun
+import Utils
+
+# set logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 
 def parse_args():
