@@ -171,7 +171,8 @@ class Server(Communicator):
             logger.info(self.packets_received)
             return self.udp_ttpi
         self.send_msg(['DONE'])
-        self.sock.close()
+        if Config.COMM == 'TCP':
+            self.sock.close()
 
     def connect_devices(self):
         # wait for incoming connections via various application layer protocols
