@@ -27,13 +27,18 @@ def parse_args():
     parser.add_argument('--target', help='Server', default='127.0.0.1')
     args = parser.parse_args()
     # set parameters based on input
-    stress = args.stress.upper()
-    limiter = args.limiter.upper()
+    stress = args.stress
+    limiter = args.limiter
     monitor = args.monitor
     Config.R = args.rounds
     model = args.model
     communicator = args.communicator.upper()
     target = args.target
+
+    if stress is not None:
+        stress = stress.upper()
+    if limiter is not None:
+        limiter = limiter.upper()
 
     # Error handling
     if Config.R < 1:
