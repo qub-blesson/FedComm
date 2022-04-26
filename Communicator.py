@@ -240,6 +240,7 @@ class Communicator(object):
         msg = pickle.loads(body)
         self.q.put(msg)
         if msg[0] == 'DONE':
+            self.send_msg(['DONE'])
             self.clean()
         elif msg[0] == 'MSG_COMMUNICATION_TIME':
             self.count += 1
