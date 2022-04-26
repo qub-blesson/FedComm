@@ -286,9 +286,9 @@ class Communicator(object):
         # load message
         while self.incoming:
             msg = pickle.loads(self.sub_socket.recv())
-            if msg == 'DONE' or msg == ['DONE']:
-                print(msg)
+            if msg == ['DONE']:
                 self.incoming = False
+                self.send_msg(['DONE'])
                 pass
             self.q.put(msg)
 
