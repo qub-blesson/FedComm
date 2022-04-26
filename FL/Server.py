@@ -171,6 +171,8 @@ class Server(Communicator):
             logger.info(self.packets_received)
             return self.udp_ttpi
         self.send_msg(['DONE'])
+        if Config.COMM == 'ZMTP':
+            self.incoming = False
         if Config.COMM == 'TCP':
             self.sock.close()
 
