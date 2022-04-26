@@ -7,6 +7,7 @@ import torch.optim as optim
 import torchvision
 import tqdm
 from torchvision.transforms import transforms
+from socket import SHUT_RDWR
 
 sys.path.append('../')
 import Utils

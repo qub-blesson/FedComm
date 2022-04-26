@@ -34,7 +34,7 @@ class ServerRunTest(unittest.TestCase):
         self.server = ServerRun(None, None, 'stress', 'lim', True)
         self.assertEqual(self.server.results, '')
         self.assertDictEqual(self.server.res, {})
-        self.server.create_results_file()
+        self.server.create_results_file(False)
         self.assertEqual(self.server.results,
                          '../results/FedBench_TCP_lim_stress_VGG8.pkl')
 

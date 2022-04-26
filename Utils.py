@@ -34,6 +34,7 @@ tools = {'cpu': 'stress-ng --cpu 1 --timeout 1500s &',
          '4G': 'sudo tc qdisc add dev ens160 root tbf rate 20mbit latency 50ms burst 1600 &',
          '3G': 'sudo tc qdisc add dev ens160 root tbf rate 5mbit latency 50ms burst 1600 &'}
 
+# Set available input variables
 available_communicators = {'TCP', 'UDP', 'MQTT', 'AMQP', 'ZMTP', '0MQ', 'ZMQ', None}
 available_models = {'VGG5', 'VGG8', None}
 available_stress = {'CPU', 'NET', 'ALL', None}
