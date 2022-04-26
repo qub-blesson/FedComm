@@ -104,9 +104,6 @@ class Client(Communicator):
         elif Config.COMM == 'TCP':
             self.sock.shutdown(SHUT_RDWR)
             self.sock.close()
-        else:
-            if self.q.get() == 'DONE':
-                pass
 
     def retrieve_model_weights(self):
         # retrieve model weights from server

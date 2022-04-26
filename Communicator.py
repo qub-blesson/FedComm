@@ -90,6 +90,7 @@ class Communicator(object):
             self.context = zmq.Context()
             self.pub_socket = None
             self.sub_socket = None
+            self.incoming = True
             # Connect clients/server
             self.client_to_server()
             self.server_to_client()
@@ -283,8 +284,13 @@ class Communicator(object):
         Receive and unpickle message sent via ZeroMQ (ZMTP)
         """
         # load message
-        while True:
-            self.q.put(pickle.loads(self.sub_socket.recv()))
+        while self.incoming:
+            msg = pickle.loads(self.sub_socket.recv())
+            if msg == 'DONE' or msg == ['DONE']:
+                print(msg)
+                self.incoming = False
+                pass
+            self.q.put(msg)
 
     """ UDP Functionality """
     def send_msg_udp(self, sock, tcp_sock, address, msg):
@@ -387,3 +393,6 @@ class Communicator(object):
             pass
 
         return ip
+
+    def end_ZMTP(self):
+        self.thread.join()
