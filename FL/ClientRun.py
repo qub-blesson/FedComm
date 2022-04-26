@@ -150,5 +150,4 @@ class ClientRun:
         if self.stress == 'NET':
             os.system('fuser 5678/tcp -k')
         if Config.COMM == 'UDP':
-            while True:
-                pass
+            time.sleep(10)
