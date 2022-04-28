@@ -80,7 +80,7 @@ class IntegrationTest(unittest.TestCase):
         else:
             ClientRun(communicator, model, stress, limiter, monitor)
 
-    def test_TCP_1round_vgg8(self):
+    def test_input_tools(self):
         #time.sleep(90)
         target = '192.168.101.120'
         stress = None
