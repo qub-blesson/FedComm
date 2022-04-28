@@ -74,7 +74,7 @@ class ClientRun:
         if self.stress is not None:
             if self.stress == 'CPU' or self.stress == 'ALL':
                 os.system('sudo test')
-                os.system(Utils.tools[self.stress])
+                os.system(Utils.tools['CPU'])
             if self.stress == 'NET' or self.stress == 'ALL':
                 if self.index % 2 == 0:
                     os.system('netstress -m host -n 9999 &')
