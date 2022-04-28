@@ -28,7 +28,7 @@ np.random.seed(0)
 torch.manual_seed(0)
 
 # establish tools to be used throughout FL process
-tools = {'cpu': 'stress-ng --cpu 1 --timeout 1500s &',
+tools = {'CPU': 'stress-ng --cpu 1 --timeout 1500s &',
          'net1': 'netstress -m host &',
          'WI-FI': 'sudo tc qdisc add dev ens160 root tbf rate 60mbit latency 50ms burst 1600 &',
          '4G': 'sudo tc qdisc add dev ens160 root tbf rate 20mbit latency 50ms burst 1600 &',
