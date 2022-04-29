@@ -359,7 +359,7 @@ class Communicator(object):
         sock.settimeout(None)
         return buffer
 
-    def recv_msg_udp_agg(self, sock, expect_msg_type=None):
+    def recv_msg_udp_agg(self, sock):
         agg_dict = {'192.168.101.116': [], '192.168.101.217': [], '192.168.101.218': [], '192.168.101.219': []}
         read_next = True
         global end_msg
