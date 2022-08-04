@@ -1,4 +1,4 @@
-# FedComm:  A Benchmarking Method for Federated Learning Communication Protocols
+# FedComm:  Understanding Communication Protocols for Edge-based Federated Learning
 
 ### About FedComm
 
