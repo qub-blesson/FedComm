@@ -19,7 +19,7 @@ Running FedComm with full customization is an 8 step process (All are optional):
 </ol> 
 
 <p align="center">
-  <img src="Images/FedCommProcess.pdf" alt="FedComm Process" width="400"/>
+  <img src="Images/FedCommProcess" alt="FedComm Process" width="400"/>
 </p>
 
 ### Setting up the environment
