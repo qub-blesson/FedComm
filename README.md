@@ -14,7 +14,7 @@ Running FedComm with full customization is an 8 step process (All are optional):
   <li>Apply network or CPU stress tests</li>
   <li>Select network bandwidth rate</li>
   <li>Select server device</li>
-  <li>Run the FL process to initiate FedBench benchmarking method</li>
+  <li>Run the FL process to initiate FedComm benchmarking method</li>
   <li>Enable/Disable monitoring of TCP re-transmission packets</li>
 
 </ol> 
