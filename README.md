@@ -2,7 +2,7 @@
 
 ### About FedComm
 
-FedComm started off as a final year MEng project at Queen's University Belfast and was designed to help evaluate application layer protocols in a variety of environments under varying network conditions to further explore FL and the application layer protocols used for transferring data to build a complete analysis to bring benefits to the FL community.
+FedComm started off as a final year MEng project at Queen's University Belfast and was designed to help evaluate application layer protocols in a variety of environments under varying network conditions to further explore federated learning (FL) and the application layer protocols used for transferring data. This helps build a better picture of the impact of communication protocols on FL.
 
 FedComm was designed to run via the command line, providing a simple interface to interact with and to quickly get the FL process operating with any customizations.
 Running FedComm with full customization is an 8 step process (All are optional):
